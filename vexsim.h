@@ -85,19 +85,20 @@ class VexSim
 			void RemoveNodeFromIdleList(Node *);
 			Config* findPreferredConfig(Task *);
 			Config* findClosestConfig(Task *); // for now the simulator only picks a random number for the closest configuration match
-			Node* findAnyIdleNode(Task* ,unsigned long int& );
-			Node* findBestBlankNodeMatch(Task* ,unsigned long int& );
-			Node* findBestNodeMatch(Task* ,Node *,unsigned long int&);
+			Node* findAnyIdleNode(Task* ,unsigned long long int& );
+			Node* findBestBlankNodeMatch(Task* ,unsigned long long int& );
+			Node* findBestNodeMatch(Task* ,Node *,unsigned long long int&);
 			void makeNodeBlank(Node *);
 			void sendBitstream(Node *);
 			void DiscardTask(Task *);
 			void PutInSuspensionQueue(Task * );
-			bool queryBusyListforPotentialCandidate(Task *, unsigned long int& );
+			bool queryBusyListforPotentialCandidate(Task *, unsigned long long int& );
 			void MakeReport();
 			unsigned long TotalConfigCount();
 			
 			// Vex Scheduler Code..... different strategies should be implemented as the body of this function
 			void RunVexScheduler(Task *);
+			void RunVexScheduler2(Task *);
 
 			unsigned int TotalTasks;  // total number of synthatic tasks to be generated
 			Node ** blanklist;		// initially all the created nodes are blank and they will be configured as the sim progresses
@@ -126,11 +127,12 @@ class VexSim
 			unsigned int ConfigTimeLow,ConfigTimeHigh;
 			unsigned int NWDLow,NWDHigh;
 			
-			unsigned long int Total_Wasted_Area;
-			unsigned long int Total_Search_Length_Scheduler;
-			unsigned long int Total_Task_Wait_Time;
-			unsigned long int Total_Tasks_Running_Time;
-			unsigned long int Total_Configuration_Time;
+			unsigned long long int Total_Wasted_Area;
+			unsigned long long int Total_Search_Length_Scheduler; // It accounts only for the steps taken by the scheduler to accommodate tasks (to find the bestmatch, idlenodes, blanknodes) not looking at the suspension queue
+			unsigned long long int Total_Scheduler_Workload; // Total search workload scheduler has to go through during one simulation run
+			unsigned long long int Total_Task_Wait_Time;
+			unsigned long long int Total_Tasks_Running_Time;
+			unsigned long long int Total_Configuration_Time;
 			
 			unsigned long long int TimeTick;
 };
