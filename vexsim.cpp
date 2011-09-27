@@ -10,7 +10,9 @@ using namespace std;
 VexSim::VexSim(unsigned int TN,unsigned int TC, unsigned long int TT, unsigned int NextTaskMaxInterval,
 			   unsigned int NlowA, unsigned int NhighA,
 			   unsigned int TlowA, unsigned int ThighA,
-		       unsigned int TRTlow, unsigned int TRThigh)
+		       unsigned int TRTlow, unsigned int TRThigh,
+			   unsigned int ConfTmL , unsigned int ConfTmH,
+			   unsigned int NWDH, unsigned int NWDL)
 {
 	TotalNodes=TN;
 	TotalConfigs=TC;
@@ -39,7 +41,12 @@ VexSim::VexSim(unsigned int TN,unsigned int TC, unsigned long int TT, unsigned i
 	Total_Search_Length_Scheduler=0;
 	Total_Task_Wait_Time=0;	
 	Total_Tasks_Running_Time=0;
+	Total_Configuration_Time=0;
 	
+	ConfigTimeHigh 	= ConfTmH;
+	ConfigTimeLow 	= ConfTmL;
+	NWDHigh = NWDH;
+	NWDLow = NWDL;
 	
 	TimeTick=0;
 	
@@ -65,9 +72,11 @@ void VexSim::InitNodes()
 		t=new Node;
 		if(!t) { cerr<<"\nError in memory allocation.\n"; exit(1);}
 		
+		t->ConfigCount=0; //counter for the no of configurations for this node
 		blanklist[i]=t;
 		t->NodeNo=i+1;  // The Node numbers are starting from 1.
 		t->Area=(x.rand_int31()%(NodehighA-NodelowA+1))+NodelowA;
+		t->NetworkDelay = (x.rand_int31()%(NWDHigh-NWDLow+1))+NWDLow;
 		t->ConfigNo=0;  // The node initial is blank
 		t->Bnext=NULL;
 		t->Inext=NULL;
@@ -85,6 +94,9 @@ void VexSim::InitConfigs()
 	for(unsigned int i=0;i<TotalConfigs+1;i++)
 	{
 		configs[i].ConfigNo=i;  // ConfigNo are beginning from 1.
+		
+		configs[i].ConfigTime = (x.rand_int31()%(ConfigTimeHigh-ConfigTimeLow+1))+ConfigTimeLow;
+		
     	configs[i].idle=configs[i].busy=NULL;
     }
 }
@@ -155,6 +167,8 @@ void VexSim::TaskCompletionProc(Node* cur)
 
 void VexSim::SendTaskToNode(Task *t, Node *n)
 {
+	unsigned int conftime;
+	
 	cout<<"Node # "<< n->NodeNo << " has started executing task # "<< t->TaskNo << endl;
 	cout<<"Task creation time: "<< t->CreateTime <<endl;
 	t->StartTime=TimeTick;
@@ -169,9 +183,17 @@ void VexSim::SendTaskToNode(Task *t, Node *n)
 	// add the node to the current busy list
 	AddNodeToBusyList(n);
 	
+	conftime = configs[t->AssignedConfig].ConfigTime;
+	
 	// update some report statistics
+	Total_Configuration_Time+= conftime;
 	Total_Wasted_Area+= n->Area - t->NeededArea;
-	Total_Task_Wait_Time+= t->StartTime - t->CreateTime;
+	Total_Task_Wait_Time += ( t->StartTime - t->CreateTime) + conftime; 
+						// basicall start time is the time for starting the configuration process, 
+						// i.e we have identified optimal/preffered/... node and we want to configure it
+						// so configuration will also take some time depending upon different factors
+						// this mean that actual waiting time will be affected by config time as well
+						// thats why its added here
 }
 
 Task * VexSim::CreateTask()
@@ -355,7 +377,10 @@ void VexSim::makeNodeBlank(Node *n)
 
 void VexSim::sendBitstream(Node *n)
 {
-	cout<<"sending bitstream for configuration # " << n->ConfigNo << " to the Node # " <<n->NodeNo <<endl;
+	(n->ConfigCount)++;
+	cout<<"sending bitstream for configuration # " << n->ConfigNo 
+		<< " to the Node # " <<n->NodeNo
+		<< " reconfiguration count for this node = "<<n->ConfigCount<<endl;
 }
 
 bool VexSim::queryBusyListforPotentialCandidate(Task *t, unsigned long int& SL )
@@ -403,7 +428,7 @@ void VexSim::RunVexScheduler(Task *t)
 	
 	if (Cmatch) // required configuration was found in the list (exact match)
 	{
-		t->AssignedConfig=Cmatch->ConfigNo; // set the assigned config for the current task
+		t->AssignedConfig = Cmatch->ConfigNo; // set the assigned config for the current task
 		
 		if(Cmatch->idle) // there are idle nodes available with the preferred config
 		{
@@ -426,6 +451,7 @@ void VexSim::RunVexScheduler(Task *t)
 					Total_Search_Length_Scheduler+=SL;
 					n->ConfigNo=Cmatch->ConfigNo; // change the ConfigNo of the blank node from 0 to the configuration match
 					sendBitstream(n);
+					
 					AddNodeToIdleList(n); // this is something stupid!!! extra here because the node was initially blank we first add it to the idle
 									  // list of corresponding config and then next function will add it to the busy list of that config, just
 									  // because it has a function which initially tries to remove the node from idle list!
@@ -444,6 +470,7 @@ void VexSim::RunVexScheduler(Task *t)
 					makeNodeBlank(n);
 					n->ConfigNo=Cmatch->ConfigNo; // change the ConfigNo of the idle node to the configuration match
 					sendBitstream(n);
+					
 					AddNodeToIdleList(n); // this is something stupid!!! extra here because the node is not in the idle
 									  // list of new config and then next function will add it to the busy list of that config, just
 									  // because it has a function which initially tries to remove the node from idle list!
@@ -487,6 +514,7 @@ void VexSim::RunVexScheduler(Task *t)
 					Total_Search_Length_Scheduler+=SL;
 					n->ConfigNo=Closestmatch->ConfigNo; // change the ConfigNo of the blank node from 0 to the closest configuration match
 					sendBitstream(n);
+					
 					AddNodeToIdleList(n); // this is something stupid!!! extra here because the node was initially blank we first add it to the idle
 									  // list of corresponding config and then next function will add it to the busy list of that config, just
 									  // because it has a function which initially tries to remove the node from idle list!
@@ -534,7 +562,7 @@ void VexSim::MakeReport()
 	f<<"total_simulation_time\t"<<TimeTick<<endl;
 
 
-	f<<"task_generation_interval\t[ 1 ... "<<NextTaskMaxInterval<<" ]"<<endl;
+	f<<"task_generation_interval\t[ 100 ... "<<NextTaskMaxInterval<<" ]"<<endl;
 	f<<"PE_available_area_range\t[ "<<NodelowA<<" ... "<<NodehighA<<" ]"<<endl;
 	f<<"task_required_area_range\t[ "<<TasklowA<<" ... "<<TaskhighA<<" ]"<<endl;
 	f<<"task_required_timeslice_range\t[ "<<TaskReqTimelow<<" ... "<<TaskReqTimehigh<<" ]"<<endl;
@@ -553,6 +581,11 @@ void VexSim::MakeReport()
 	f<<"total_tasks_running_time\t"<<Total_Tasks_Running_Time<<endl;
 	f<<"average_task_running_time\t"<<(Total_Tasks_Running_Time)/(double)(TotalCompletedTasks)<<endl;
 	
+	f<<"total_configuration_time\t"<<Total_Configuration_Time<<endl;
+	f<<"average_configuration_time_per_task\t"<<(Total_Configuration_Time)/(double)(TotalCompletedTasks)<<endl;
+	f<<"Total_reconfiguration_count\t"<<TotalConfigCount()<<endl;
+	f<<"average_reconfiguration_count_per_node\t"<<TotalConfigCount()/(double)TotalNodes<<endl;
+	
 	f.close();
 }
 
@@ -564,7 +597,7 @@ void VexSim::Start()
 	while( ( TotalCompletedTasks + TotalDiscardedTasks ) < TotalTasks )  // still there are tasks which are not finished
 	{
 		
-		nextIncomTaskTimeTick=TimeTick + 1 + (x.rand_int31() % NextTaskMaxInterval);
+		nextIncomTaskTimeTick=TimeTick + 100 + (x.rand_int31() % NextTaskMaxInterval);
 		IncreaseTimeTick();  // advance one time tick
 		
 		// can be improved later because there is actually no need to check on every time tick
@@ -602,4 +635,22 @@ void VexSim::Start()
 		}
 	}// main loop of the simulation
 	MakeReport(); 	// end of the simulation, make the final report
+}
+
+unsigned long VexSim::TotalConfigCount()
+{
+	unsigned int i;
+	unsigned long Total=0;
+	
+	for(i=0;i<TotalNodes;i++)
+    {
+		Total += blanklist[i]->ConfigCount; //each node has the info of its reconfig count
+											//secondly, when a node is created, its registered in blanklist,
+											//so a loop traversal on this blanklist for the total no
+											//of nodes is done to the total configuration count
+		//just for testing
+// 		cout<<endl<<"Network delay of node ["<<i<<"] = "<<blanklist[i]->NetworkDelay;
+											
+	}
+	return Total;
 }
