@@ -2,7 +2,7 @@
 // This is software simulator for task scheduling on Vex multiprocessor systems
 // written by Arash Ostadzadeh
 // ostadzadeh@gmail.com
-
+#include <stdio.h>
 #include "vexsim.h"
 
 using namespace std;
@@ -110,16 +110,6 @@ void VexSim::InitConfigs()
     }
 }
 
-void VexSim::AddNodeToBusyList(Node *node)
-{
-	// update the busy list for the current node/config
-	// add the node to the current busy list at the starting point
-
-	node->Bnext=configs[node->ConfigNo].busy;
-	configs[node->ConfigNo].busy=node;
-	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
-}	
-
 void VexSim::AddNodeToIdleList(Node *node)
 {
 	// update the idle list for the current node/config
@@ -130,21 +120,55 @@ void VexSim::AddNodeToIdleList(Node *node)
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 }	
 
+void VexSim::AddNodeToBusyList(Node *node)
+{
+	// update the busy list for the current node/config
+	// add the node to the current busy list at the starting point
+
+	node->Bnext=configs[node->ConfigNo].busy;
+	configs[node->ConfigNo].busy=node;
+	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
+}	
+
 void VexSim::RemoveNodeFromIdleList(Node *node) 
 {
-	Node * temp=configs[node->ConfigNo].idle;
-	if (temp==node) configs[node->ConfigNo].idle=temp->Inext;
+	Node * temp;
+	
+	if(configs[node->ConfigNo].idle)
+		temp=configs[node->ConfigNo].idle;
+	else
+		return;
+	
+	cout<<"\n Removing node "<<node->NodeNo<<" from idle list "<<endl;
+	
+	if (temp==node) 
+		configs[node->ConfigNo].idle=temp->Inext;
 	else
 	{
-		while(temp->Inext && temp->Inext!=node)	temp=temp->Inext;
-		temp->Inext=temp->Inext->Inext;
+		while(temp->Inext != NULL) 
+			if(temp->Inext!=node)	
+				temp=temp->Inext;
+			
+		if(temp->Inext->Inext)
+			temp->Inext=temp->Inext->Inext;
+		else
+			cout<<"\n temp->Inext->Inext is NULL"<<endl;
+			
 	}
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 }	
 
 void VexSim::RemoveNodeFromBusyList(Node *node)
 {
-	Node * temp=configs[node->ConfigNo].busy;
+	Node * temp;
+	
+	if(configs[node->ConfigNo].busy)
+		temp=configs[node->ConfigNo].busy;
+	else
+		return;
+	
+	cout<<"\n Removing node "<<node->NodeNo<<" from busy list "<<endl;	
+	
 	if (temp==node) configs[node->ConfigNo].busy=temp->Bnext;
 	else
 	{
@@ -158,6 +182,8 @@ void VexSim::RemoveNodeFromBusyList(Node *node)
 void VexSim::TaskCompletionProc(Node* curNode , Task *task)
 {
 	//print task report summary
+	cout<<"\n Inside Task Completion Proc"<<endl;
+	
 	cout<<"Node # "<< curNode->NodeNo << " finished executing Task # "<< task->TaskNo <<endl;
 	
 	cout<<"Starting time: "<< task->StartTime <<"     CompletionTime= "<< task->CompletionTime <<endl;
@@ -191,19 +217,20 @@ void VexSim::SendTaskToNode(Task *task, Node *node)
 {
 	unsigned int conftime;
 	
-	// node->Tasks=task;
+	cout<<"\n Sending Task to node"<<endl;
+	
+	cout<<"Node # "<< node->NodeNo << " has started executing task # "<< task->TaskNo << endl;
+	cout<<"Task creation time: "<< task->CreateTime <<endl;
+	task->StartTime=TimeTick;
+	task->CompletionTime= TimeTick + task->RequiredTime;
+	
+	cout<<"start time: "<< task->StartTime <<"     completion time: "<< task->CompletionTime << endl;
+	
 	if( addTaskToNode(node,task) == false )
 	{
 		cout<<"\n Cannot assign task to node "<<endl;
 		exit(1);
 	}
-	
-	cout<<"Node # "<< node->NodeNo << " has started executing task # "<< task->TaskNo << endl;
-	cout<<"Task creation time: "<< task->CreateTime <<endl;
-	task->StartTime=TimeTick;
-	task->CompletionTime=TimeTick + task->RequiredTime;
-	
-	cout<<"start time: "<< task->StartTime <<"     completion time: "<< task->CompletionTime << endl;
 	
 	// remove the node from current idle list
 	RemoveNodeFromIdleList(node);
@@ -216,7 +243,7 @@ void VexSim::SendTaskToNode(Task *task, Node *node)
 	Total_Configuration_Time+= conftime;
 	Total_Wasted_Area+= node->TotalArea - node->AvailableArea;
 	Total_Task_Wait_Time += ( task->StartTime - task->CreateTime) + conftime; 
-						// basicall start time is the time for starting the configuration process, 
+						// basically start time is the time for starting the configuration process, 
 						// i.e we have identified optimal/preffered/... node and we want to configure it
 						// so configuration will also take some time depending upon different factors
 						// this mean that actual waiting time will be affected by config time as well
@@ -289,9 +316,12 @@ Task * VexSim::CheckSuspensionQueue(Node *curNode)
 
 Config* VexSim::findPreferredConfig(Task *task)
 {
-	// for now just a stupid straightforward check!
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
-	if (task->PrefConfig <= TotalConfigs) return &configs[task->PrefConfig];
+	
+	// for now just a stupid straightforward check!	
+	if (task->PrefConfig <= TotalConfigs) 
+		return &configs[task->PrefConfig];
+		
 	return NULL; // no exact match
 }
 
@@ -492,7 +522,7 @@ void VexSim::RunVexScheduler(Task *task)
 		}
 		if(!found) // no suitable idle node found at this point
 		{
-			if(CurBlankNodeIndex<TotalNodes) // blank node(s) still available
+			if(CurBlankNodeIndex < TotalNodes) // blank node(s) still available
 			{
 				node=findBestBlankNodeMatch(task,SL);
 				if (node)
@@ -660,22 +690,21 @@ void VexSim::Start()
 		// can be improved later because there is actually no need to check on every time tick
 		while(TimeTick<=nextIncomTaskTimeTick) // check for completed tasks first then check whether or not suspended tasks could be accomodated
 		{
-			cout<<"\n reached here in while "<<endl;		
 			for(unsigned int i=0;i<CurBlankNodeIndex;i++,Total_Scheduler_Workload++) 
-				if(blanklist[i]->NodeTasks != 0) // there is a task running at this node
+				if(blanklist[i]->NodeTasks > 0) // there is a task running at this node
 				{
-
 					for(int k = 0 ; k < blanklist[i]->NodeTasks ; k++) 	//we will check all the tasks running on this node
 																		//as there can be multiple tasks
 					{
-						cout<<"\n reached here in k "<<endl;
+						cout<<"\n reached here in k, k = "<<k<<endl;
+						cout<<"\n blanklist[i]->NodeTasks = "<<blanklist[i]->NodeTasks<<endl;
 						cout<<"\n TimeTick = "<<TimeTick<<endl;
-						cout<<"\n blanklist[i]->Tasks[k].CompletionTime = "<<blanklist[i]->Tasks[k].CompletionTime<<endl;
-						if( blanklist[i]->Tasks[k].CompletionTime == TimeTick) 	//if this task is going to complete at this moment
+						cout<<"\n (blanklist[i]->Tasks[k]).CompletionTime = "<<(blanklist[i]->Tasks[k]).CompletionTime<<endl;
+						if( (blanklist[i]->Tasks[k]).CompletionTime == TimeTick) 	//if this task is going to complete at this moment
 																				//then perform task termination housekeeping for this task
 						{
 							Task *tsq;
-							cout<<"\n reached here before taskcompletionproc "<<endl;
+							cout<<"\n reached here inside if before taskcompletionproc "<<endl;
 							TaskCompletionProc( blanklist[i], &(blanklist[i]->Tasks[k]) );
 							tsq=CheckSuspensionQueue(blanklist[i]);
 							if (tsq) // found a task in suspension queue to accomodate
@@ -686,6 +715,8 @@ void VexSim::Start()
 								TotalCurSusTasks--; 
 							}
 						}
+						// cout<<endl<<"press any key to continue "<<endl;
+						// getchar();
 					}
 				}
 			IncreaseTimeTick();  // advance one time tick
@@ -725,3 +756,36 @@ unsigned long VexSim::TotalConfigCount()
 	}
 	return Total;
 }
+
+bool addTaskToNode(Node *node, Task *task)
+{
+	cout<<"\n Adding task "<<task->TaskNo<<" to node "<<node->NodeNo<<endl;
+	if( (node->NodeTasks) < MAX_NODE_TASKS )
+	{
+		node->Tasks[node->NodeTasks] = *task;
+		node->AvailableArea -= task->NeededArea;
+		(node->NodeTasks)++;
+		return true;
+	}
+	else
+		return false;
+}
+
+bool removeTaskFromNode(Node *node, Task *task)
+{
+	cout<<"\n Removing task "<<task->TaskNo<<" to node "<<node->NodeNo<<endl;
+	for(int i =0 ; i < (node->NodeTasks); i++ )
+	{
+		if(node->Tasks[i].TaskNo == task->TaskNo)
+		{
+			(node->NodeTasks)--;
+			
+			for(int j = i; j < (node->NodeTasks); j++ )
+				node->Tasks[i] = node->Tasks[i+1];
+			
+			return true;
+		}
+	}
+	return false;
+}
+

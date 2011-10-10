@@ -22,8 +22,6 @@ typedef struct
 	unsigned long int NeededArea;
 	unsigned int PrefConfig;
 	unsigned int AssignedConfig;
-// 	Config PrefConfig;
-// 	Config AssignedConfig;
 	unsigned long long int CreateTime;
 	unsigned long long int StartTime;
 	unsigned long long int CompletionTime;
@@ -51,42 +49,15 @@ typedef struct N
 	unsigned long int AvailableArea;	//this is the remaning area which is available for any partial reconfiguration
 	unsigned long ConfigCount;
 	unsigned int NetworkDelay;
-	//CurTasks can also be used to detect whether or not the node is idle
 	Task Tasks[MAX_NODE_TASKS];
+	//NodeTasks can be used to detect whether or not the node is idle or there are tasks running on it
 	unsigned int NodeTasks;
 	struct N * Inext;
 	struct N * Bnext;
 } Node;
 
-bool addTaskToNode(Node *node, Task *task)
-{
-	if( (node->NodeTasks) < MAX_NODE_TASKS )
-	{
-		node->Tasks[node->NodeTasks] = *task;
-		node->AvailableArea -= task->NeededArea;
-		(node->NodeTasks)++;
-		return true;
-	}
-	else
-		return false;
-}
-
-bool removeTaskFromNode(Node *node, Task *task)
-{
-	for(int i =0 ; i < (node->NodeTasks); i++ )
-	{
-		if(node->Tasks[i].TaskNo == task->TaskNo)
-		{
-			(node->NodeTasks)--;
-			
-			for(int j = i; j < (node->NodeTasks); j++ )
-				node->Tasks[i] = node->Tasks[i+1];
-			
-			return true;
-		}
-	}
-	return false;
-}
+bool addTaskToNode(Node *node, Task *task);
+bool removeTaskFromNode(Node *node, Task *task);
 
 typedef struct
 {
@@ -142,10 +113,11 @@ class VexSim
 		void RunVexScheduler2(Task *);
 
 		unsigned int TotalTasks;  // total number of synthatic tasks to be generated
+		
 		Node ** blanklist;		// initially all the created nodes are blank and they will be configured as the sim progresses
 								// the blanklist contains non-blank nodes up to CurBlankNodeIndex, the rest of the list is blank
-
 		unsigned int CurBlankNodeIndex;
+		
 		unsigned int TotalConfigs; // total number of configurations
 		RNG x;		// random number 
 		unsigned int TotalNodes;

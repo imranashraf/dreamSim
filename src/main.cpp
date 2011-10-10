@@ -10,8 +10,8 @@
 int main(int argc, char **argv)
 {
 	
-	unsigned long int TT=1000,TN=300,TC=10;
-	unsigned long int Sim_Tasks [20] = {2, 2000, 3000, 4000, 5000,10000,20000,30000,40000,50000,100000,200000,300000,400000,500000,1000000 }; 
+	unsigned long int TT=1000,TN=5,TC=10;
+	unsigned long int Sim_Tasks [20] = {40, 2000, 3000, 4000, 5000,10000,20000,30000,40000,50000,100000,200000,300000,400000,500000,1000000 }; 
 	
 	switch (argc)
 	{
