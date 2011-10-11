@@ -286,7 +286,6 @@ Task * VexSim::CreateTask()
 {
 	Task *t;
 	
-	TotalCurGenTasks++; // new task is going to be created
 	t=new Task;
 	if (!t) { cerr<<"\nError in memory allocation for Task # " << TotalCurGenTasks <<"\n"; exit(1);}
 	
@@ -300,16 +299,33 @@ Task * VexSim::CreateTask()
 	t->CreateTime=TimeTick;
 	t->RequiredTime=(x.rand_int31()%(TaskReqTimehigh-TaskReqTimelow+1))+TaskReqTimelow;
 	t->SusRetry=0;
-	
+
+	TotalCurGenTasks++; // new task is going to be created
+
 	cout<<"Task # " << TotalCurGenTasks << " submitted to the system at time # " << TimeTick << endl;
 	// can print other information about the task here
-	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 	
+	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
+
 	return t;
 }
 
-Task * VexSim::CheckSuspensionQueue(Node *cur)
+bool GiveEntryNo(Node * n, unsigned int confNo, unsigned int * EntryNo)
 {
+	for (int i=0; i < Config_Task_Entries, i++)
+		if(n->Config_Task_List[i].task->config->ConfigNo == confNo)
+		{
+			*EntryNo = i;
+			return true;
+		}
+		
+	return false;
+}
+
+
+Task * VexSim::CheckSuspensionQueue(Node *n)
+{
+	unsigned int EntryNo;
 	SusList* temp=suspendedlist;
 	// the search for a match on the suspension queue will terminate as soon as a matched node with the same config and available area found
 	// could be a point for further improvement (a more intelligent match making to optimize waste area ,...)
@@ -319,20 +335,25 @@ Task * VexSim::CheckSuspensionQueue(Node *cur)
 	while(temp) 
 	{
 		Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
-		if (cur->ConfigNo==temp->item->AssignedConfig && cur->Area >= temp->item->NeededArea) 
-		 // a match is found
+		
+		//Here we are checking the tasks in the suspended list one by one, if the configuration required by this task 
+		//is already available on this node or node, if a match is found then the task is removed from the suspending list
+		//and returned
+		if	( GiveEntryNo(n, temp->item->AssignedConfig , &EntryNo)	== true ) 	// a match is found
+																				//EntryNo is not needed here
 		{
 			Task * t=temp->item;
 			
 			//update the suspended tasks list
 			if (!prev_temp) // first node to be removed from suspension queue
-							suspendedlist=temp->next;
-			else prev_temp->next=temp->next;
+				suspendedlist=temp->next;
+			else 
+				prev_temp->next=temp->next;
 			
 			delete temp;
 			Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.			
 			return t;
-			
+
 		}
 		
 		temp->item->SusRetry++; // this task was agained tested to be assigned to a node without success
@@ -346,16 +367,19 @@ Task * VexSim::CheckSuspensionQueue(Node *cur)
 
 Config* VexSim::findPreferredConfig(Task *t)
 {
-	// for now just a stupid straightforward check!
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
-	if (t->PrefConfig <= TotalConfigs) return &configs[t->PrefConfig];
+	
+	// for now just a stupid straightforward check!	
+	if (t->PrefConfig <= TotalConfigs) 
+		return &configs[t->PrefConfig];
+	
 	return NULL; // no exact match
 }
-
 
 Config* VexSim::findClosestConfig(Task *t)
 {
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
+	
 	// for now just a random config # will be picked up as the closest match
 	return &configs[(x.rand_int31()%TotalConfigs)+1];
 }
@@ -369,6 +393,7 @@ Node* VexSim::findAnyIdleNode(Task* t,unsigned long long int& SL)
 	while( c < CurBlankNodeIndex)
  	{
  		if (!blanklist[c]->CurTask && blanklist[c]->Area >= t->NeededArea) return blanklist[c];
+		
   		c++;
   		SL++;
 		Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
