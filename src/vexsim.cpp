@@ -61,8 +61,8 @@ void VexSim::InitNodes()
 	unsigned int i,j;
 	Node *n;
 	
-	blanklist=new Node*[TotalNodes];
-	if(!blanklist) { cerr<<"\nError in memory allocation.\n"; exit(1);}
+	nodelist=new Node*[TotalNodes];
+	if(!nodelist) { cerr<<"\nError in memory allocation.\n"; exit(1);}
 	
 	CurBlankNodeIndex=0;
 	//nodesList=NULL; // no node initially in the already configured linked list
@@ -72,8 +72,8 @@ void VexSim::InitNodes()
 		n=new Node;
 		if(!n) { cerr<<"\nError in memory allocation.\n"; exit(1);}
 		
-		n->ConfigCount=0; //counter for the no of configurations for this node
-		blanklist[i]=n;
+		n->ReConfigCount=0; //counter for the no of configurations for this node
+		nodelist[i]=n;
 		n->NodeNo=i+1;  // The Node numbers are starting from 1.
 		n->TotalArea=(x.rand_int31()%(NodehighA-NodelowA+1))+NodelowA;
 		n->AvailableArea = n->TotalArea;
@@ -82,8 +82,8 @@ void VexSim::InitNodes()
 		
 		for (j=0; j < MAX_NODE_CONFIGS ;j++)
 		{
-			n->Config_Task_List[j]->task = NULL;
-			n->Config_Task_List[j]->config = NULL;
+			n->Config_Task_List[j].task = NULL;
+			n->Config_Task_List[j].config = NULL;
 			n->Inext[j]=NULL;
 			n->Bnext[j]=NULL;			
 		}
@@ -165,9 +165,9 @@ void VexSim::RemoveNodeFromBusyList(Node *n , Config *conf)
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 }	
 
-bool GiveEntryNo(Node *n, Task * t, unsigned int * EntryNo)
+bool VexSim::GiveEntryNo(Node *n, Task * t, unsigned int * EntryNo)
 {
-	for (int i=0; i < Config_Task_Entries, i++)
+	for (int i=0; i < n->Config_Task_Entries ; i++)
 		if(n->Config_Task_List[i].task == t)
 		{
 			*EntryNo = i;
@@ -185,9 +185,6 @@ void VexSim::TaskCompletionProc(Node* n, Task * t)
 	
 	cout<<"Starting time: "<< t->StartTime <<"     CompletionTime= "<< t->CompletionTime <<endl;
 	cout<<"elapsed time ticks: " << t->RequiredTime <<endl;
-	if (t->SusRetry) 
-		cout<<"The task had been initially put in the suspension queue. "
-			<< n->CurTask->SusRetry << " retries have been carried out before accommodation\n";
 	
 	//update report statistics
 	TotalCompletedTasks++;
@@ -195,37 +192,41 @@ void VexSim::TaskCompletionProc(Node* n, Task * t)
 	
 	if( GiveEntryNo(n, t, &EntryNo) == true )
 	{	
-		RemoveNodeFromBusyList(n,Config_Task_List[EntryNo].config);
-		AddNodeToIdleList(n,Config_Task_List[EntryNo].config);
+		if (t->SusRetry) 
+			cout<<"The task had been initially put in the suspension queue. "
+				<< n->Config_Task_List[EntryNo].task->SusRetry << " retries have been carried out before accommodation\n";
+
+		RemoveNodeFromBusyList(n,n->Config_Task_List[EntryNo].config);
+		AddNodeToIdleList(n,n->Config_Task_List[EntryNo].config);
 	}
 	else
 		cout<<"\n Task "<<t->TaskNo<<" is not running on node "<<n->NodeNo<<endl;
 	
-	if( removeTaskFromNode(n,t) == false )
+	if( RemoveTaskFromNode(n,t) == false )
 		cout<<"\n could not remove task "<<t->TaskNo <<" from node "<<n->NodeNo<<endl;
 		
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 }
 
-bool removeTaskFromNode(Node *node, Task *task)
+bool VexSim::RemoveTaskFromNode(Node *node, Task *task)
 {
 	cout<<"\n Removing task "<<task->TaskNo<<" to node "<<node->NodeNo<<endl;
 	unsigned int EntryNo;
 	
 	if( GiveEntryNo(node, task, &EntryNo) == true )
 	{	
-		node->Config_Task_List[EntryNo]->task = NULL;
+		node->Config_Task_List[EntryNo].task = NULL;
 		return true;
 	}
 	else
-		cout<<"\n Task "<<t->TaskNo<<" is not running on node "<<n->NodeNo<<endl;
+		cout<<"\n Task "<<task->TaskNo<<" is not running on node "<<node->NodeNo<<endl;
 	
 	return false;
 }
 
 void VexSim::SendTaskToNode(Task *t, Node *n)
 {
-	unsigned int conftime;
+	unsigned int conftime,EntryNo=0;
 	Config * conf;
 	
 	cout<<"Node # "<< n->NodeNo << " has started executing task # "<< t->TaskNo << endl;
@@ -241,7 +242,7 @@ void VexSim::SendTaskToNode(Task *t, Node *n)
 	{
 		if( GiveEntryNo(n, t, &EntryNo) == true )
 		{	
-			conf = n->Config_Task_List[EntryNo]->conf
+			conf = n->Config_Task_List[EntryNo].config;
 		}
 		else
 			cout<<"\n Task "<<t->TaskNo<<" is not running on node "<<n->NodeNo<<endl;
@@ -268,12 +269,12 @@ void VexSim::SendTaskToNode(Task *t, Node *n)
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 }
 
-bool addTaskToNode(Node *node, Task *task)
+bool VexSim::addTaskToNode(Node *node, Task *task)
 {
 	cout<<"\n Adding task "<<task->TaskNo<<" to node "<<node->NodeNo<<endl;
 	if( (node->Config_Task_Entries) < MAX_NODE_CONFIGS )
 	{
-		node->Config_Task_List[Config_Task_Entries] = task;
+		node->Config_Task_List[node->Config_Task_Entries].task = task;
 		node->AvailableArea -= task->NeededArea;
 		(node->Config_Task_Entries)++;
 		return true;
@@ -310,10 +311,10 @@ Task * VexSim::CreateTask()
 	return t;
 }
 
-bool GiveEntryNo(Node * n, unsigned int confNo, unsigned int * EntryNo)
+bool VexSim::GiveEntryNo(Node * n, unsigned int confNo, unsigned int * EntryNo)
 {
-	for (int i=0; i < Config_Task_Entries, i++)
-		if(n->Config_Task_List[i].task->config->ConfigNo == confNo)
+	for (int i=0; i < n->Config_Task_Entries; i++)
+		if( (n->Config_Task_List[i].task)->AssignedConfig == confNo)
 		{
 			*EntryNo = i;
 			return true;
@@ -322,6 +323,18 @@ bool GiveEntryNo(Node * n, unsigned int confNo, unsigned int * EntryNo)
 	return false;
 }
 
+// a node is idle if it has some configuration but this configuration is 
+// currently not being used by any task
+bool VexSim::IsNodeIdle(Node * n)
+{
+	for (int i=0; i < n->Config_Task_Entries; i++)
+		if(n->Config_Task_List[i].task != NULL)
+		{
+			return true;
+		}
+		
+	return false;
+}
 
 Task * VexSim::CheckSuspensionQueue(Node *n)
 {
@@ -351,7 +364,7 @@ Task * VexSim::CheckSuspensionQueue(Node *n)
 				prev_temp->next=temp->next;
 			
 			delete temp;
-			Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.			
+				Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.			
 			return t;
 
 		}
@@ -363,6 +376,12 @@ Task * VexSim::CheckSuspensionQueue(Node *n)
 	}
 	
 	return NULL; // no suitable task found the recently released node
+}
+
+// a node is blank if it has no configuration at all
+bool VexSim::IsNodeBlank(Node * n)
+{
+	return ( n->Config_Task_Entries == 0);
 }
 
 Config* VexSim::findPreferredConfig(Task *t)
@@ -387,14 +406,18 @@ Config* VexSim::findClosestConfig(Task *t)
 	
 Node* VexSim::findAnyIdleNode(Task* t,unsigned long long int& SL)
 {
- 	unsigned long int c=0;
+ 	unsigned long int i;
  	// trying to find any (first) available idle node with any kind of configuration
  	
-	while( c < CurBlankNodeIndex)
+	for ( i=0; i < TotalNodes; i++)
  	{
- 		if (!blanklist[c]->CurTask && blanklist[c]->Area >= t->NeededArea) return blanklist[c];
+ 		if 	(
+			(IsNodeIdle(nodelist[i])) && 
+			( nodelist[i]->AvailableArea >= (configs[t->PrefConfig].RequiredArea)  ) &&
+			(nodelist[i]->Config_Task_Entries < MAX_NODE_CONFIGS)
+			)
+			return nodelist[i];
 		
-  		c++;
   		SL++;
 		Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
  	}
@@ -404,69 +427,76 @@ Node* VexSim::findAnyIdleNode(Task* t,unsigned long long int& SL)
 Node* VexSim::findBestBlankNodeMatch(Task* t,unsigned long long int& SL)
 {
 	signed long int bestMatchindex=-1;
- 	unsigned long int mindiff;
+ 	unsigned long int mindiff, nodearea,taskarea;
  	signed long int temp;
- 	signed long int counter=CurBlankNodeIndex;
+ 	signed long int counter=0;
  	
  	// only minimum wasted area is taken into account at the moment
  	
 	while(counter<TotalNodes)			// find the first suitable node
  	{
- 		if (blanklist[counter]->Area >= t->NeededArea) 
- 		{
- 			bestMatchindex=counter;
- 			mindiff=blanklist[counter]->Area - t->NeededArea;
- 			break;
- 		}
-  		counter++;
-  		SL++;
-		Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
- 	}
+		if( IsNodeBlank(nodelist[counter]) )
+		{
+			nodearea = nodelist[counter]->TotalArea;
+			taskarea = configs[t->PrefConfig].RequiredArea;
+			if ( nodearea >= taskarea && (nodelist[counter]->Config_Task_Entries < MAX_NODE_CONFIGS)) 
+			{
+				bestMatchindex=counter;
+				mindiff= nodearea - taskarea;
+				break;
+			}
+		}			
+			counter++;
+			SL++;
+			Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
+	}
 	
-	if(bestMatchindex==-1) return NULL; // no suitable node found in the blank list
+	if(bestMatchindex==-1) 
+		return NULL; // no suitable node found in the blank list
 	
 	while(++counter<TotalNodes)	// check the remaining nodes to find a better match
 	{
-		temp=blanklist[counter]->Area - t->NeededArea;
-		
- 		if ( (temp>=0) && ( mindiff > temp ) ) 
- 		{
- 			bestMatchindex=counter;
- 			mindiff=temp;
- 		}
+		if( IsNodeBlank(nodelist[counter]) )
+		{
+			nodearea = nodelist[counter]->TotalArea;
+			taskarea = configs[t->PrefConfig].RequiredArea;
+			temp=nodearea - taskarea;
+			if ( (temp>=0) && ( mindiff > temp ) && (nodelist[counter]->Config_Task_Entries < MAX_NODE_CONFIGS) ) 
+			{
+				bestMatchindex=counter;
+				mindiff=temp;
+			}
+		}
   		SL++;
 		Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 	}	
-	// swap the node found at bestmatch and the node residing on the CurBlankNodeIndex to keep the already assigned nodes and blank nodes in two
-	// separate parts
-
-	Node * tempn=blanklist[CurBlankNodeIndex];
-	blanklist[CurBlankNodeIndex]=blanklist[bestMatchindex];
-	blanklist[bestMatchindex]=tempn;
-	
-	CurBlankNodeIndex++;
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
-	return blanklist[CurBlankNodeIndex-1];
+	return nodelist[bestMatchindex];
 }
 
 	
 Node* VexSim::findBestNodeMatch(Task* t,Node *idlelist,unsigned long long int& SL)
 {
 	Node * bestMatch=NULL;
- 	unsigned long int mindiff;
- 	signed long int temp;
+ 	unsigned long int mindiff,nodearea,taskarea,EntryNo;
+ 	signed long int temp; 
  	
  	// only minimum wasted area is taken into account at the moment
  	
 	while(idlelist)			// find the first suitable node
  	{
- 		if (idlelist->Area >= t->NeededArea) 
+		nodearea = idlelist->TotalArea;
+		taskarea = configs[t->PrefConfig].RequiredArea;
+ 		if (nodearea >= taskarea && (idlelist->Config_Task_Entries < MAX_NODE_CONFIGS) ) 
  		{
  			bestMatch=idlelist;
- 			mindiff=idlelist->Area - t->NeededArea;
+ 			mindiff=nodearea - taskarea;
  			break;
  		}
-  		idlelist=idlelist->Inext;
+		
+		// if(GiveEntryNo(idlelist,t->AssignedConfig, &EntryNo) == true)
+		idlelist=idlelist->Inext[t->AssignedConfig];
+		
   		SL++;
 		Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
  	}
@@ -475,14 +505,16 @@ Node* VexSim::findBestNodeMatch(Task* t,Node *idlelist,unsigned long long int& S
 	
 	while(idlelist)	// check the remaining nodes to find a better match
 	{
-		temp=idlelist->Area - t->NeededArea;
+		nodearea = idlelist->TotalArea;
+		taskarea = configs[t->PrefConfig].RequiredArea;
+		temp=nodearea - taskarea;
 		
- 		if ( (temp>=0) && ( mindiff > temp ) ) 
+ 		if ( (temp>=0) && ( mindiff > temp ) && (idlelist->Config_Task_Entries < MAX_NODE_CONFIGS)) 
  		{
  			bestMatch=idlelist;
  			mindiff=temp;
  		}
-  		idlelist=idlelist->Inext;
+  		idlelist=idlelist->Inext[t->AssignedConfig];
   		SL++;
 		Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 	}	
@@ -495,27 +527,65 @@ Node* VexSim::findBestNodeMatch(Task* t,Node *idlelist,unsigned long long int& S
 void VexSim::makeNodeBlank(Node *n)
 {
 	cout<<"making Node # " << n->NodeNo <<" blank"<<endl;
+	
+	n->Config_Task_Entries = 0;
+	
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 }
 
-
-void VexSim::sendBitstream(Node *n)
+void VexSim::sendBitstream(Node *n, Config *conf)
 {
-	(n->ConfigCount)++;
-	cout<<"sending bitstream for configuration # " << n->ConfigNo 
+	(n->ReConfigCount)++;
+	
+	cout<<"sending bitstream for configuration # " << conf->ConfigNo 
 		<< " to the Node # " <<n->NodeNo
-		<< " reconfiguration count for this node = "<<n->ConfigCount<<endl;
+		<< " reconfiguration count for this node = "<<n->ReConfigCount<<endl;
+
+		n->Config_Task_List[n->Config_Task_Entries].config = conf;
+		(n->Config_Task_Entries)++;
+		
 		Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 }
 
+bool VexSim::IsNodeFull(Node * n, Task *t)
+{
+	if(n->Config_Task_Entries >= MAX_NODE_CONFIGS)
+		return true;
+		
+	if(n->AvailableArea <= configs[t->PrefConfig].RequiredArea)
+		return true;
+	
+	for (int i=0; i < n->Config_Task_Entries; i++)
+	{
+		if(n->Config_Task_List[i].task != NULL)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+// check the nodes of all the busy list one by one
+// if a node is full at this moment, but area requirements are 
+// such that it can be used for this task in the future 
+// then return true
 bool VexSim::queryBusyListforPotentialCandidate(Task *t, unsigned long long int& SL )
 {
-	Node *temp=configs[t->AssignedConfig].busy;
+	Node *temp;
 	
-	while(temp)
+	for(int i=0;i<MAX_NODE_CONFIGS;i++)
 	{
-		if( temp->Area >= t->NeededArea ) return true;
-		temp=temp->Bnext;
+		temp = configs[i].busy;
+		while(temp)
+		{
+			if( IsNodeFull(temp, t) == true)
+			{
+				if( temp->TotalArea >= configs[t->PrefConfig].RequiredArea ) 
+					return true;
+			}
+			temp=temp->Bnext[i];
+		}
 		SL++;
 		Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 	}
@@ -545,11 +615,24 @@ void VexSim::DiscardTask(Task *t)
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 }
 
+unsigned long VexSim::TotalReConfigCount()
+{
+	unsigned int i;
+	unsigned long Total=0;
+	
+	for(i=0;i<TotalNodes;i++)
+    {
+		Total += nodelist[i]->ReConfigCount; //each node has the info of its reconfig count
+	}
+	return Total;
+}
+
+
 void VexSim::RunVexScheduler(Task *t)
 {
 	Config * Cmatch,* Closestmatch;
 	bool found=false;
-	unsigned long long int SL=0;
+	unsigned long long int SL=0, EntryNo;
 	Node *n;
 	
 	Cmatch=findPreferredConfig(t);
@@ -572,39 +655,35 @@ void VexSim::RunVexScheduler(Task *t)
 		}
 		if(!found) // no suitable idle node found at this point
 		{
-			if(CurBlankNodeIndex<TotalNodes) // blank node(s) still available
+			n=findBestBlankNodeMatch(t,SL);
+			if (n)
 			{
-				n=findBestBlankNodeMatch(t,SL);
-				if (n)
-				{
-					Total_Search_Length_Scheduler+=SL;
-					n->ConfigNo=Cmatch->ConfigNo; // change the ConfigNo of the blank node from 0 to the configuration match
-					Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
-					sendBitstream(n);
-					
-					AddNodeToIdleList(n); // this is something stupid!!! extra here because the node was initially blank we first add it to the idle
-									  // list of corresponding config and then next function will add it to the busy list of that config, just
-									  // because it has a function which initially tries to remove the node from idle list!
-					SendTaskToNode(t,n);
-					found=true;					
-				}
-			}// end of blank node(s) still available
+				Total_Search_Length_Scheduler+=SL;
+				Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
+				sendBitstream(n,Cmatch);
+				SendTaskToNode(t,n);
+				found=true;					
+			}
 			
 			if(!found) // no blank node available or there is no suitable blank node available!!!
 			{			// try reconfiguring one of the idle nodes!
 				n=findAnyIdleNode(t,SL);
 				if (n) // An idle node is found for reconfiguration
 				{
+					Config * conf;
+					unsigned int EntryNo=0;
 					Total_Search_Length_Scheduler+=SL;
-					RemoveNodeFromIdleList(n);
+					if( GiveEntryNo(n, t, &EntryNo) == true )
+					{	
+						conf = n->Config_Task_List[EntryNo].config;
+					}
+					else
+						cout<<"\n Task "<<t->TaskNo<<" is not running on node "<<n->NodeNo<<endl;
+						
+					RemoveNodeFromIdleList(n,conf);
 					makeNodeBlank(n);
-					n->ConfigNo=Cmatch->ConfigNo; // change the ConfigNo of the idle node to the configuration match
 					Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
-					sendBitstream(n);
-					
-					AddNodeToIdleList(n); // this is something stupid!!! extra here because the node is not in the idle
-									  // list of new config and then next function will add it to the busy list of that config, just
-									  // because it has a function which initially tries to remove the node from idle list!
+					sendBitstream(n,Cmatch);
 					SendTaskToNode(t,n);
 					found=true;
 				}
@@ -638,19 +717,14 @@ void VexSim::RunVexScheduler(Task *t)
 		if(!found) // no (suitable) idle nodes available
 		{
 			// in case we are coming from an exact match configuration part, we have already searched the blank list and no need for a re-search
-			if( !Cmatch	&& CurBlankNodeIndex<TotalNodes) // blank node(s) still available
+			if( !Cmatch	) 
 			{
 				n=findBestBlankNodeMatch(t,SL);
 				if (n)
 				{
 					Total_Search_Length_Scheduler+=SL;
-					n->ConfigNo=Closestmatch->ConfigNo; // change the ConfigNo of the blank node from 0 to the closest configuration match
 					Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
-					sendBitstream(n);
-					
-					AddNodeToIdleList(n); // this is something stupid!!! extra here because the node was initially blank we first add it to the idle
-									  // list of corresponding config and then next function will add it to the busy list of that config, just
-									  // because it has a function which initially tries to remove the node from idle list!
+					sendBitstream(n,Closestmatch);
 					SendTaskToNode(t,n);
 					found=true;
 				}
@@ -661,19 +735,21 @@ void VexSim::RunVexScheduler(Task *t)
 			     	   // we are going to wait for a busy node to become idle!
 						// The last solution!
 		{
-				if(Cmatch) 
-					t->AssignedConfig=Cmatch->ConfigNo; // adjust the assigned config field again if needed, in case there was previously an exact match
-					Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
+			if(Cmatch) 
+				t->AssignedConfig=Cmatch->ConfigNo; // adjust the assigned config field again if needed, in case there was previously an exact match
 				
-				found=queryBusyListforPotentialCandidate(t,SL); // determine whether or not the current busy list has any potential candidate for 
-																// accommodating the task regarding the Area restriction
-				Total_Search_Length_Scheduler+=SL;
-																				
-				if( found )   // if yes
-					PutInSuspensionQueue(t);
+			Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
+			
+			found=queryBusyListforPotentialCandidate(t,SL); // determine whether or not the current busy list has any potential candidate for 
+															// accommodating the task regarding the Area restriction
+			Total_Search_Length_Scheduler+=SL;
+																			
+			if( found )   // if yes
+				PutInSuspensionQueue(t);
 
-				// we can also go for another check with all busy nodes and do a reconfig later if needed, not considered in this scheduler!!!
-				else DiscardTask(t); // bad task, throw it away! 
+			// we can also go for another check with all busy nodes and do a reconfig later if needed, not considered in this scheduler!!!
+			else 
+				DiscardTask(t); // bad task, throw it away! 
 		} // end of waiting!
 	}// end of no exact match or we had exact match but were not able to accommodate on exact config list
 }
@@ -682,19 +758,19 @@ void VexSim::MakeReport()
 {
 	ofstream f;
 	
-	    sprintf (fileName, "%d", TotalTasks);
-	    strcat(fileName, ".txt");
+	sprintf (fileName, "%d", TotalTasks);
+	strcat(fileName, ".txt");
 	  	  
-		f.open(fileName);
-	if (f.fail()) { cout<<"\n failed opening the simulation report file.\n"; exit(1); }
+	f.open(fileName);
+	if (f.fail()) 
+	{ 
+		cout<<"\n failed opening the simulation report file.\n"; exit(1); 
+	}
 	  
-	
 	f<<"total_tasks_generated\t"<<TotalTasks<<endl;
 	f<<"total_PEs\t"<<TotalNodes<<endl;
 	f<<"total_configurations\t"<<TotalConfigs<<endl;
-	f<<"total_used_PEs\t"<<CurBlankNodeIndex<<endl;
 	f<<"total_simulation_time\t"<<TimeTick<<endl;
-
 
 	f<<"task_generation_interval\t[ 1 ... "<<NextTaskMaxInterval<<" ]"<<endl;
 	f<<"PE_available_area_range\t[ "<<NodelowA<<" ... "<<NodehighA<<" ]"<<endl;
@@ -717,12 +793,23 @@ void VexSim::MakeReport()
 	
 	f<<"total_configuration_time\t"<<Total_Configuration_Time<<endl;
 	f<<"average_configuration_time_per_task\t"<<(Total_Configuration_Time)/(double)(TotalCompletedTasks)<<endl;
-	f<<"Total_reconfiguration_count\t"<<TotalConfigCount()<<endl;
-	f<<"average_reconfiguration_count_per_node\t"<<TotalConfigCount()/(double)TotalNodes<<endl;
+	f<<"Total_reconfiguration_count\t"<<TotalReConfigCount()<<endl;
+	f<<"average_reconfiguration_count_per_node\t"<<TotalReConfigCount()/(double)TotalNodes<<endl;
 	f<<"Total_Scheduler_Workload\t"<<Total_Scheduler_Workload<<endl;
 	
-	
 	f.close();
+}
+
+bool VexSim::IsAnyTaskCompleted(Node * n, Task *t)
+{
+	for (int i=0; i < n->Config_Task_Entries; i++)
+		if(n->Config_Task_List[i].task->CompletionTime == TimeTick)
+		{
+			t = n->Config_Task_List[i].task;
+			return true;
+		}
+		
+	return false;
 }
 
 void VexSim::Start()
@@ -739,19 +826,21 @@ void VexSim::Start()
 		// can be improved later because there is actually no need to check on every time tick
 		while(TimeTick<=nextIncomTaskTimeTick) // check for completed tasks first then check whether or not suspended tasks could be accomodated
 		{
-			for(unsigned int i=0;i<CurBlankNodeIndex;i++,Total_Scheduler_Workload++) 
-				if(blanklist[i]->CurTask) // there is a task running at this node
+			for(unsigned int i=0;i<TotalNodes;i++,Total_Scheduler_Workload++) 
+				if(IsNodeIdle(nodelist[i]) == false) // there is a task running at this node
 				{
-					if( blanklist[i]->CurTask->CompletionTime==TimeTick) //task termination housekeeping
+					Task *tmp;
+					if( IsAnyTaskCompleted( nodelist[i] , tmp) ) //task termination housekeeping
 					{
-						Task *tsq;
-						TaskCompletionProc(blanklist[i]);
-						tsq=CheckSuspensionQueue(blanklist[i]);
-						if (tsq) // found a task in suspension queue to accomodate
+						TaskCompletionProc(nodelist[i],tmp);
+						
+						//now lets have a look at suspension queue for a suspended task which can run on this node
+						tmp=CheckSuspensionQueue(nodelist[i]);
+						if (tmp) // found a task in suspension queue to accomodate
 						{
-							cout<<"removing task # "<< tsq->TaskNo <<" from suspension queue\n";
+							cout<<"removing task # "<< tmp->TaskNo <<" from suspension queue\n";
 							// send the task to the recently released node
-							SendTaskToNode(tsq,blanklist[i]);
+							SendTaskToNode(tmp,nodelist[i]);
 							TotalCurSusTasks--; 
 						}
 					}
@@ -771,23 +860,5 @@ void VexSim::Start()
 		}
 	}// main loop of the simulation
 	MakeReport(); 	// end of the simulation, make the final report
-}
-
-unsigned long VexSim::TotalConfigCount()
-{
-	unsigned int i;
-	unsigned long Total=0;
-	
-	for(i=0;i<TotalNodes;i++)
-    {
-		Total += blanklist[i]->ConfigCount; //each node has the info of its reconfig count
-											//secondly, when a node is created, its registered in blanklist,
-											//so a loop traversal on this blanklist for the total no
-											//of nodes is done to the total configuration count
-		//just for testing
-// 		cout<<endl<<"Network delay of node ["<<i<<"] = "<<blanklist[i]->NetworkDelay;
-											
-	}
-	return Total;
 }
 

@@ -16,6 +16,8 @@
 
 #define MAX_NODE_CONFIGS 10
 
+struct Config;
+
 typedef struct
 {
 	unsigned int TaskNo;
@@ -52,21 +54,21 @@ typedef struct N
 	unsigned long int TotalArea;
 	unsigned long int AvailableArea;
 	
-	unsigned long ConfigCount;	//reconfig count
+	unsigned long ReConfigCount;	//reconfig count
 	unsigned int NetworkDelay;
 
 	struct N * Inext[MAX_NODE_CONFIGS];	//pointer to next idle node for a certain configuration, pointed by index of configuration
 	struct N * Bnext[MAX_NODE_CONFIGS];	//pointer to next busy node for a certain configuration, , pointed by index of configuration
 } Node;
 
-typedef struct
+struct Config
 {
 	unsigned int ConfigNo; // starting at 1...TotalConfigs
 	unsigned int ConfigTime;
 	unsigned long int RequiredArea;
 	Node * idle;		//pointer to first node to the linked list of idle nodes with this configuration
 	Node * busy;		//pointer to first node to the linked list of busy nodes with this configuration
-} Config;
+};
 
 
 class VexSim
@@ -88,34 +90,47 @@ class VexSim
 			void IncreaseTimeTick(unsigned int lapse=1) { TimeTick+=lapse; }
 			void DecreaseTimeTick(unsigned int lapse=1) { TimeTick-=lapse; }
 			// unsigned int FindClosestConfig(unsigned int); // extra function (interface without body)
-			void TaskCompletionProc(Node *);
+			void TaskCompletionProc(Node* n, Task * t);
 			Task * CheckSuspensionQueue(Node *);  // check suspended tasks for a suitable match of the already released node
 			void SendTaskToNode(Task *,Node *);
 			Task * CreateTask();
-			void AddNodeToBusyList(Node *);
-			void RemoveNodeFromBusyList(Node *);
-			void AddNodeToIdleList(Node *);
-			void RemoveNodeFromIdleList(Node *);
+			void AddNodeToBusyList(Node *n, Config *conf);
+			void RemoveNodeFromBusyList(Node *n , Config *conf);
+			void AddNodeToIdleList(Node *n, Config *conf);
+			void RemoveNodeFromIdleList(Node *n, Config *conf);
 			Config* findPreferredConfig(Task *);
 			Config* findClosestConfig(Task *); // for now the simulator only picks a random number for the closest configuration match
 			Node* findAnyIdleNode(Task* ,unsigned long long int& );
 			Node* findBestBlankNodeMatch(Task* ,unsigned long long int& );
 			Node* findBestNodeMatch(Task* ,Node *,unsigned long long int&);
 			void makeNodeBlank(Node *);
-			void sendBitstream(Node *);
+			void sendBitstream(Node *n, Config *conf);
 			void DiscardTask(Task *);
 			void PutInSuspensionQueue(Task * );
 			bool queryBusyListforPotentialCandidate(Task *, unsigned long long int& );
 			void MakeReport();
-			unsigned long TotalConfigCount();
+			unsigned long TotalReConfigCount();
+			
+			bool GiveEntryNo(Node *n, Task * t, unsigned int * EntryNo);
+			bool addTaskToNode(Node *node, Task *task);
+			bool RemoveTaskFromNode(Node *node, Task *task);
+			bool GiveEntryNo(Node * n, unsigned int confNo, unsigned int * EntryNo);
+			bool IsNodeIdle(Node * n);
+			bool IsNodeBlank(Node * n);
+			bool IsNodeFull(Node * n, Task *t);
+			bool IsAnyTaskCompleted(Node * n, Task *t);
+			
 			
 			// Vex Scheduler Code..... different strategies should be implemented as the body of this function
 			void RunVexScheduler(Task *);
-			void RunVexScheduler2(Task *);
+			// void RunVexScheduler2(Task *);
 
 			unsigned int TotalTasks;  // total number of synthatic tasks to be generated
-			Node ** blanklist;		// initially all the created nodes are blank and they will be configured as the sim progresses
+			// Node ** blanklist;		// initially all the created nodes are blank and they will be configured as the sim progresses
 									// the blanklist contains non-blank nodes up to CurBlankNodeIndex, the rest of the list is blank
+			
+			Node ** nodelist;		// list of all the nodes
+									
 
 			unsigned int CurBlankNodeIndex;
 			unsigned int TotalConfigs; // total number of configurations
