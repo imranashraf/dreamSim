@@ -4,7 +4,7 @@ CPPSOURCES=vexsim.cpp rng.cpp main.cpp
 HSOURCES=vexsim.h rng.h
 
 all: $(CPPSOURCES) $(HSOURCES)
-	@-$(CC) -o $(EXEC) main.cpp
+	@-$(CC) -g  -o $(EXEC) main.cpp
 
 run: $(EXEC)
 	@-echo "Running Simulation ..."
