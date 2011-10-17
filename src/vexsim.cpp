@@ -181,13 +181,19 @@ bool VexSim::GiveEntryNo(Node *n, Task * t, unsigned int * EntryNo)
 	cout<<"\n In GiveEntryNo "<<endl;
 	cout<<"\n n->Config_Task_Entries "<<n->Config_Task_Entries<<endl;
 	
+	
 	for (int i=0; i < n->Config_Task_Entries ; i++)
-		if(n->Config_Task_List[i].task == t)
+	{
+	cout<<" \n n->Config_Task_List[i].task->TaskNo : "<< (n->Config_Task_List[i].task)->TaskNo<<endl;
+	cout<<"\n t->TaskNo : "<<t->TaskNo<<endl;
+	
+		if(n->Config_Task_List[i].task->TaskNo == t->TaskNo)
 		{
 			*EntryNo = i;
 			cout<<"\n EntryNo found is "<<*EntryNo<<endl;			
 			return true;			
 		}
+	}
 		
 	return false;
 }
@@ -215,7 +221,7 @@ void VexSim::TaskCompletionProc(Node* n, Task * t)
 		AddNodeToIdleList(n,n->Config_Task_List[EntryNo].config);
 	}
 	else
-		cout<<"\n Task "<<t->TaskNo<<" is not running on node "<<n->NodeNo<<endl;
+		cout<<"\n Task (TaskCompletion) "<<t->TaskNo<<" is not running on node "<<n->NodeNo<<endl;
 	
 	if( RemoveTaskFromNode(n,t) == false )
 		cout<<"\n could not remove task "<<t->TaskNo <<" from node "<<n->NodeNo<<endl;
@@ -234,7 +240,7 @@ bool VexSim::RemoveTaskFromNode(Node *node, Task *task)
 		return true;
 	}
 	else
-		cout<<"\n Task "<<task->TaskNo<<" is not running on node "<<node->NodeNo<<endl;
+		cout<<"\n Task (RemoveTaskFromNode) "<<task->TaskNo<<" is not running on node "<<node->NodeNo<<endl;
 	
 	return false;
 }
@@ -264,7 +270,7 @@ void VexSim::SendTaskToNode(Task *t, Node *n)
 				<<endl;
 		}
 		else
-			cout<<"\n Task "<<t->TaskNo<<" is not running on node "<<n->NodeNo<<endl;
+			cout<<"\n (SendTaskToNode) Task "<<t->TaskNo<<" is not running on node "<<n->NodeNo<<endl;
 
 		// remove the node from current idle list
 		RemoveNodeFromIdleList(n,conf);
@@ -293,16 +299,19 @@ void VexSim::SendTaskToNode(Task *t, Node *n)
 
 bool VexSim::addTaskToNode(Node *node, Task *task)
 {
-	cout<<"\n Adding task "<<task->TaskNo<<" to node "<<node->NodeNo<<endl;
-	if( (node->Config_Task_Entries) < MAX_NODE_CONFIGS )
-	{
-		node->Config_Task_List[node->Config_Task_Entries].task = task;
-		node->AvailableArea -= task->NeededArea;
-		// (node->Config_Task_Entries)++;
-		return true;
-	}
-	else
-		return false;
+	unsigned int EntryNo;
+	
+	for(int i=0;i<node->Config_Task_Entries;i++)
+		if( (node->Config_Task_List[i].config->ConfigNo) == (task->AssignedConfig) )
+		{
+			node->Config_Task_List[EntryNo].task = task;
+			(node->AvailableArea) -= (task->NeededArea);
+			return true;
+		}
+
+	cout<<"\n Node "<<node->NodeNo<<" does not have configuration "<<task->AssignedConfig<<endl;
+	return false;
+	
 }
 
 Task * VexSim::CreateTask()
@@ -336,7 +345,7 @@ Task * VexSim::CreateTask()
 bool VexSim::GiveEntryNo(Node * n, unsigned int confNo, unsigned int * EntryNo)
 {
 	for (int i=0; i < n->Config_Task_Entries; i++)
-		if( (n->Config_Task_List[i].task)->AssignedConfig == confNo)
+		if( ( (n->Config_Task_List[i]).task)->AssignedConfig == confNo)
 		{
 			*EntryNo = i;
 			return true;
@@ -565,10 +574,14 @@ void VexSim::sendBitstream(Node *n, Config *conf)
 		<< " Entry No for this will be "<<n->Config_Task_Entries
 		<<endl;
 
-		n->Config_Task_List[n->Config_Task_Entries].config = conf;
-		(n->Config_Task_Entries)++;
-		
-		Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
+	n->Config_Task_List[n->Config_Task_Entries].config = conf;
+	
+	//now that we have a certain configuration on the node, we should
+	//add this node to idle list for this particular configuration
+	AddNodeToIdleList(n,conf);
+
+	(n->Config_Task_Entries)++;	
+	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 }
 
 bool VexSim::IsNodeFull(Node * n, Task *t)
@@ -698,14 +711,14 @@ void VexSim::RunVexScheduler(Task *t)
 					Config * conf;
 					unsigned int EntryNo=0;
 					Total_Search_Length_Scheduler+=SL;
-					if( GiveEntryNo(n, t, &EntryNo) == true )
-					{	
-						conf = n->Config_Task_List[EntryNo].config;
-					}
-					else
-						cout<<"\n Task "<<t->TaskNo<<" is not running on node "<<n->NodeNo<<endl;
-						
-					RemoveNodeFromIdleList(n,conf);
+					// if( GiveEntryNo(n, t->AssignedConfig, &EntryNo) == true )
+					// {	
+						// conf = n->Config_Task_List[EntryNo].config;
+					// }
+					// else
+						// cout<<"\n (RunVexScheduler) Task "<<t->TaskNo<<" is not running on node "<<n->NodeNo<<endl;
+					
+					RemoveNodeFromIdleList(n,&configs[t->AssignedConfig]);
 					makeNodeBlank(n);
 					Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 					sendBitstream(n,Cmatch);
@@ -827,12 +840,16 @@ void VexSim::MakeReport()
 
 bool VexSim::IsAnyTaskCompleted(Node * n, Task *t)
 {
-	for (int i=0; i < n->Config_Task_Entries; i++)
-		if(n->Config_Task_List[i].task->CompletionTime == TimeTick)
+	int i;
+	cout<<"\n in IsAnyTaskCompleted() "<<endl;
+	for (i=0; i < n->Config_Task_Entries; i++)
+	{
+		if( (n->Config_Task_List[i].task)->CompletionTime <= TimeTick)
 		{
 			t = n->Config_Task_List[i].task;
 			return true;
 		}
+	}
 		
 	return false;
 }
@@ -852,15 +869,19 @@ void VexSim::Start()
 		while(TimeTick<=nextIncomTaskTimeTick) // check for completed tasks first then check whether or not suspended tasks could be accomodated
 		{
 			for(unsigned int i=0;i<TotalNodes;i++,Total_Scheduler_Workload++)
-			{	;
+			{	
 				// if( nodelist[i] == NULL ) cout<<"\n i here is : " << i<<endl;
 				// else	cout<<"\n i is : " << i<<endl;
-
-				if(IsNodeIdle(nodelist[i]) == false) // there is a task running at this node
+				cout<<"\n before idle test, i = "<<i<<endl;
+				cout<<"\n IsNodeBlank "<<IsNodeBlank(nodelist[i])
+					<<"\n IsNodeIdle " <<IsNodeIdle(nodelist[i])<<endl;
+					
+				if(!IsNodeBlank(nodelist[i]) && !IsNodeIdle(nodelist[i])) // there is a task running at this node
 				{
 					Task *tmp;
 					if( IsAnyTaskCompleted( nodelist[i] , tmp) ) //task termination housekeeping
 					{
+						
 						TaskCompletionProc(nodelist[i],tmp);
 						
 						//now lets have a look at suspension queue for a suspended task which can run on this node
@@ -876,19 +897,30 @@ void VexSim::Start()
 				}
 			}
 			IncreaseTimeTick();  // advance one time tick
+			if(TimeTick % 100 == 0) cout<<"$";
 		}// end of while ( TimeTick<=nextIncomTaskTimeTick )
 		
 		DecreaseTimeTick();  // the time needs to be adjusted just for the last unsuccessful increase in the TimeTick, otherwise we miss
 							//  one of the ticks here! Note that the current TimeTick at this point is one unit ahead of the actual value
 		
+		cout<<"\n TimeTick : "<<TimeTick
+			<<"\n nextIncomTaskTimeTick : "<<nextIncomTaskTimeTick
+			<<"\n TotalTasks : "<<TotalTasks
+			<<"\n TotalCompletedTasks : "<<TotalCompletedTasks
+			<<"\n TotalDiscardedTasks : "<<TotalDiscardedTasks
+			<<"\n TotalCurGenTasks : "<<TotalCurGenTasks
+			<<endl;
+			
 		//create the new scheduled task
 		if ( TotalCurGenTasks < TotalTasks ) // still we need to generate more tasks!
 		{
 			t=CreateTask();
 			//send the created task to the scheduler 
+			cout<<"\n Before calling RunVexScheduler for created task : "<<t->TaskNo<<endl;
 			RunVexScheduler(t);
 		}
 	}// main loop of the simulation
+	cout<<"\n Before MakeReport"<<endl;
 	MakeReport(); 	// end of the simulation, make the final report
 }
 

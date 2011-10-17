@@ -5,8 +5,8 @@
 
 int main(int argc, char **argv)
 {
-	unsigned long int TT=1000,TN=300,TC=10;
-	unsigned long int Sim_Tasks [20] = {1000, 2000, 3000, 4000, 5000,10000,20000,30000,40000,50000,100000,200000,300000,400000,500000,1000000 }; 
+	unsigned long int TT=1000,TN=10,TC=10;
+	unsigned long int Sim_Tasks [20] = {100, 2000, 3000, 4000, 5000,10000,20000,30000,40000,50000,100000,200000,300000,400000,500000,1000000 }; 
 	
 	switch (argc)
 	{
@@ -17,7 +17,7 @@ int main(int argc, char **argv)
 		break;
 	}
 		
- 		for (int i=0;i<=15;i++)
+ 		for (int i=0;i<=1;i++)
  		{
  		TT=Sim_Tasks[i];
 		VexSim VS(TN,TC,TT);
