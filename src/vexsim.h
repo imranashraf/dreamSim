@@ -14,7 +14,7 @@
 #ifndef _VEX_SIM_
 #define _VEX_SIM_
 
-#define MAX_NODE_CONFIGS 10
+#define MAX_NODE_CONFIGS 5
 
 struct Config;
 
@@ -118,7 +118,7 @@ class VexSim
 			bool IsNodeIdle(Node * n);
 			bool IsNodeBlank(Node * n);
 			bool IsNodeFull(Node * n, Task *t);
-			bool IsAnyTaskCompleted(Node * n, Task *t);
+			Task * CompletedTask(Node * n);
 			
 			
 			// Vex Scheduler Code..... different strategies should be implemented as the body of this function
