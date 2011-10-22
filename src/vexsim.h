@@ -76,7 +76,7 @@ class VexSim
 	public:
 			VexSim(unsigned int TN=100,unsigned int TC=10, unsigned long int TT=10000, 
 					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=1000, unsigned int NhighA=5000,
-					unsigned int TlowA=100, unsigned int ThighA=2500,
+					unsigned int TlowA=100, unsigned int ThighA=500,
 					unsigned int TRTlow=100, unsigned int TRThigh=10000,
 					unsigned int ConfTmL=1 , unsigned int ConfTmH=3,
 				    unsigned int NWDH=800 , unsigned int NWDL=200);
@@ -119,7 +119,7 @@ class VexSim
 			bool IsNodeBlank(Node * n);
 			bool IsNodeFull(Node * n, Task *t);
 			Task * CompletedTask(Node * n);
-			
+			void printBusyLists();
 			
 			// Vex Scheduler Code..... different strategies should be implemented as the body of this function
 			void RunVexScheduler(Task *);
