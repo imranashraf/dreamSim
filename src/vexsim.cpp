@@ -580,11 +580,10 @@ Node* VexSim::findBestBlankNodeMatch(Task* t,unsigned long long int& SL)
  	signed long int counter=0;
  	
  	// only minimum wasted area is taken into account at the moment
- 	
 	while(counter<TotalNodes)			// find the first suitable node
  	{
-		// if( IsNodeBlank(nodelist[counter]) )
-		// {
+		if( nodelist[counter] != NULL )
+		{
 			nodearea = nodelist[counter]->AvailableArea;
 			taskarea = configs[t->PrefConfig].RequiredArea;
 			if ( nodearea >= taskarea && (nodelist[counter]->Config_Task_Entries < MAX_NODE_CONFIGS)) 
@@ -593,7 +592,12 @@ Node* VexSim::findBestBlankNodeMatch(Task* t,unsigned long long int& SL)
 				mindiff= nodearea - taskarea;
 				break;
 			}
-		// }			
+		}
+		else
+		{
+			cout<<"\n Node is NULL (01)"<<endl;
+			getchar();
+		}
 		counter++;
 		SL++;
 		Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
@@ -604,8 +608,8 @@ Node* VexSim::findBestBlankNodeMatch(Task* t,unsigned long long int& SL)
 	
 	while(++counter<TotalNodes)	// check the remaining nodes to find a better match
 	{
-		// if( IsNodeBlank(nodelist[counter]) )
-		// {
+		if( nodelist[counter] != NULL )
+		{
 			nodearea = nodelist[counter]->AvailableArea;
 			taskarea = configs[t->PrefConfig].RequiredArea;
 			temp=nodearea - taskarea;
@@ -614,7 +618,13 @@ Node* VexSim::findBestBlankNodeMatch(Task* t,unsigned long long int& SL)
 				bestMatchindex=counter;
 				mindiff=temp;
 			}
-		// }
+		}
+		else
+		{
+			cout<<"\n Node is NULL 02"<<endl;
+			getchar();
+		}
+		
   		SL++;
 		Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 	}	
@@ -1030,6 +1040,7 @@ void VexSim::Start()
 		DecreaseTimeTick();  // the time needs to be adjusted just for the last unsuccessful increase in the TimeTick, otherwise we miss
 							//  one of the ticks here! Note that the current TimeTick at this point is one unit ahead of the actual value
 		
+		//some printing for current situation
 		cout<<"\n TimeTick : "<<TimeTick
 			<<"\n nextIncomTaskTimeTick : "<<nextIncomTaskTimeTick
 			<<"\n TotalTasks : "<<TotalTasks
@@ -1039,7 +1050,7 @@ void VexSim::Start()
 			<<"\n schduledTasks : "<<schduledTasks
 			<<"\n TotalCurSusTasks : "<<TotalCurSusTasks
 			<<endl;
-			
+		
 		//create the new scheduled task
 		if ( TotalCurGenTasks < TotalTasks ) // still we need to generate more tasks!
 		{
@@ -1049,10 +1060,19 @@ void VexSim::Start()
 		}
 		else if( TotalCurSusTasks > 0 )
 		{
+		//this means that there are tasks available in suspension queue
+		//so fetch first task from the queue and try to schedule it
+		//at this point only the top task is fetched
+		//this can be modified to fetch task in some sequence, without waiting for only
+		//the first task to get scheduled/discarded by scheduler and then go for next one
 			Task * tmp;
-			tmp=GetAnyTaskFromSuspensionQueue();
+			tmp=GetAnyTaskFromSuspensionQueue(); //at this point, this will fetch first
 			RunVexScheduler(tmp);
 		}
+		// else  	all the created tasks have been dealt with
+		//			and suspended tasks have also been dealt
+		//			and there is nothing else do, so main loop should terminate
+
 	}// main loop of the simulation
 	cout<<"\n Going to MakeReport"<<endl;
 	MakeReport(); 	// end of the simulation, make the final report
