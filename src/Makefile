@@ -11,7 +11,7 @@ run: $(EXEC)
 	@-./$(EXEC)
 
 clean:
-	@-rm -f $(EXEC) *.txt
+	@-rm -f $(EXEC) 
 	@-echo "Cleaned Files successfully ..."
 	
 .PHONY: all clean	

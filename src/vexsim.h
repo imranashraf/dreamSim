@@ -14,7 +14,8 @@
 #ifndef _VEX_SIM_
 #define _VEX_SIM_
 
-#define MAX_NODE_CONFIGS 5
+#define MAX_NODE_CONFIGS 30
+//this should be greater than total configurations
 
 struct Config;
 
@@ -120,6 +121,8 @@ class VexSim
 			bool IsNodeFull(Node * n, Task *t);
 			Task * CompletedTask(Node * n);
 			void printBusyLists();
+			void printIdleLists();
+			Task * GetAnyTaskFromSuspensionQueue();
 			
 			// Vex Scheduler Code..... different strategies should be implemented as the body of this function
 			void RunVexScheduler(Task *);
