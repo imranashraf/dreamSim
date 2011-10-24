@@ -1,0 +1,19 @@
+total_tasks_generated	1000
+total_PEs	10
+total_configurations	30
+total_used_PEs	10
+total_simulation_time	218563
+task_generation_interval	[ 1 ... 50 ]
+PE_available_area_range	[ 1000 ... 5000 ]
+task_required_area_range	[ 100 ... 2500 ]
+task_required_timeslice_range	[ 100 ... 10000 ]
+total_tasks_completed	314
+total_tasks_discarded	686
+total_wasted_area	728156
+average_wasted_area_per_task	2318.97
+total_scheduling_steps	8966
+average_scheduling_steps_per_task	8.966
+total_tasks_waiting_time	21429184
+average_task_waiting_time	68245.8
+total_tasks_running_time	1554040
+average_task_running_time	4949.17
