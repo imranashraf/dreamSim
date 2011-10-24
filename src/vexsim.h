@@ -77,7 +77,7 @@ class VexSim
 	public:
 			VexSim(unsigned int TN=100,unsigned int TC=10, unsigned long int TT=10000, 
 					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=1000, unsigned int NhighA=5000,
-					unsigned int TlowA=100, unsigned int ThighA=500,
+					unsigned int TlowA=500, unsigned int ThighA=6000,
 					unsigned int TRTlow=100, unsigned int TRThigh=10000,
 					unsigned int ConfTmL=1 , unsigned int ConfTmH=3,
 				    unsigned int NWDH=800 , unsigned int NWDL=200);
@@ -101,8 +101,9 @@ class VexSim
 			void RemoveNodeFromIdleList(Node *n, Config *conf);
 			Config* findPreferredConfig(Task *);
 			Config* findClosestConfig(Task *); // for now the simulator only picks a random number for the closest configuration match
-			Node* findAnyIdleNode(Task* ,unsigned long long int& );
+			Node* findAnyIdleNode(Task* ,unsigned long long int& , unsigned long int * EntryNo );
 			Node* findBestBlankNodeMatch(Task* ,unsigned long long int& );
+			Node* findBestPartiallyBlankNodeMatch(Task* ,unsigned long long int& );
 			Node* findBestNodeMatch(Task* ,Node *,unsigned long long int&);
 			void makeNodeBlank(Node *);
 			void sendBitstream(Node *n, Config *conf);
@@ -123,6 +124,7 @@ class VexSim
 			void printBusyLists();
 			void printIdleLists();
 			Task * GetAnyTaskFromSuspensionQueue();
+			void makeNodePartiallyBlank(Node *n, unsigned long int EntryNo);
 			
 			// Vex Scheduler Code..... different strategies should be implemented as the body of this function
 			void RunVexScheduler(Task *);
