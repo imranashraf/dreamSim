@@ -14,6 +14,8 @@
 #ifndef _VEX_SIM_
 #define _VEX_SIM_
 
+#define DEBUG_MODE 0
+
 #define MAX_NODE_CONFIGS 30
 //this should be greater than total configurations
 

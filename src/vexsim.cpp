@@ -4,6 +4,7 @@
 // ostadzadeh@gmail.com
 
 #include "vexsim.h"
+
 int schduledTasks=0;
 using namespace std;
 
@@ -197,9 +198,9 @@ void VexSim::RemoveNodeFromBusyList(Node *node , Config *conf)
 		n=configs[conf->ConfigNo].busy;
 
 	cout<<"\n Busy List before removing Press "<<endl;
-	getchar();
+	if(DEBUG_MODE) getchar();
 	printOneBusyList(conf->ConfigNo);
-	getchar();
+	if(DEBUG_MODE) getchar();
 		
 	if (n == node) //if this is the first node
 		configs[conf->ConfigNo].busy=n->Bnext[conf->ConfigNo];
@@ -216,7 +217,7 @@ void VexSim::RemoveNodeFromBusyList(Node *node , Config *conf)
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 	cout<<"\n Busy List after removing "<<endl;
 	printOneBusyList(conf->ConfigNo);
-	getchar();
+	if(DEBUG_MODE) getchar();
 	cout<<"\n Leaving RemoveNodeFromBusyList "<<endl;
 }	
 
@@ -1013,7 +1014,7 @@ void VexSim::RunVexScheduler(Task *t)
 	}// end of no exact match or we had exact match but were not able to accommodate on exact config list
 	
 	cout<<"\n End of schedular "<<endl;
-	getchar();
+	if(DEBUG_MODE) getchar();
 }
 
 void VexSim::MakeReport()
@@ -1118,7 +1119,7 @@ void VexSim::Start()
 						if (tmp) // found a task in suspension queue to accomodate on this node
 						{
 							cout<<"removing task # "<< tmp->TaskNo <<" from suspension queue\n";
-							getchar();
+							if(DEBUG_MODE) getchar();
 							// send the task to the recently released node
 							SendTaskToNode(tmp,nodelist[i]);
 							TotalCurSusTasks--; 
@@ -1143,7 +1144,8 @@ void VexSim::Start()
 			<<"\n schduledTasks : "<<schduledTasks
 			<<"\n TotalCurSusTasks : "<<TotalCurSusTasks
 			<<endl;
-			
+
+		//if(DEBUG_MODE) 
 		getchar();
 		
 		//create the new scheduled task

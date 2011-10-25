@@ -5,7 +5,7 @@
 
 int main(int argc, char **argv)
 {
-	unsigned long int TT=6,TN=3,TC=4;
+	unsigned long int TT=15,TN=5,TC=10;
 	VexSim VS(TN,TC,TT);
 	VS.Start();
 	
