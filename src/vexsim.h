@@ -19,6 +19,7 @@
 
 struct Config;
 
+
 typedef struct
 {
 	unsigned int TaskNo;
@@ -60,6 +61,7 @@ typedef struct N
 
 	struct N * Inext[MAX_NODE_CONFIGS];	//pointer to next idle node for a certain configuration, pointed by index of configuration
 	struct N * Bnext[MAX_NODE_CONFIGS];	//pointer to next busy node for a certain configuration, , pointed by index of configuration
+	
 } Node;
 
 struct Config
@@ -122,9 +124,11 @@ class VexSim
 			bool IsNodeFull(Node * n, Task *t);
 			Task * CompletedTask(Node * n);
 			void printBusyLists();
+			void printOneBusyList(unsigned int confno);
 			void printIdleLists();
 			Task * GetAnyTaskFromSuspensionQueue();
 			void makeNodePartiallyBlank(Node *n, unsigned long int EntryNo);
+			bool NodeHasAnyRunningTasks(Node * n);
 			
 			// Vex Scheduler Code..... different strategies should be implemented as the body of this function
 			void RunVexScheduler(Task *);
