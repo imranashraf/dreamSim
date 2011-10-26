@@ -1146,7 +1146,7 @@ void VexSim::Start()
 			<<endl;
 
 		//if(DEBUG_MODE) 
-		getchar();
+			getchar();
 		
 		//create the new scheduled task
 		if ( TotalCurGenTasks < TotalTasks ) // still we need to generate more tasks!
