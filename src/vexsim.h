@@ -14,7 +14,7 @@
 #ifndef _VEX_SIM_
 #define _VEX_SIM_
 
-#define DEBUG_MODE 0
+#define DEBUG_MODE 1
 
 #define MAX_NODE_CONFIGS 30
 //this should be greater than total configurations
@@ -95,7 +95,7 @@ class VexSim
 			void IncreaseTimeTick(unsigned int lapse=1) { TimeTick+=lapse; }
 			void DecreaseTimeTick(unsigned int lapse=1) { TimeTick-=lapse; }
 			// unsigned int FindClosestConfig(unsigned int); // extra function (interface without body)
-			void TaskCompletionProc(Node* n, Task * t);
+			void TaskCompletionProc(Node* n, Task * t, unsigned int EntryNo);
 			Task * CheckSuspensionQueue(Node *);  // check suspended tasks for a suitable match of the already released node
 			void SendTaskToNode(Task *,Node *);
 			Task * CreateTask();
@@ -124,7 +124,7 @@ class VexSim
 			bool IsNodeIdle(Node * n);
 			bool IsNodeBlank(Node * n);
 			bool IsNodeFull(Node * n, Task *t);
-			Task * CompletedTask(Node * n);
+			Task * CompletedTask(Node * n,unsigned int *);
 			void printBusyLists();
 			void printOneBusyList(unsigned int confno);
 			void printIdleLists();

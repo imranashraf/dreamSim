@@ -118,16 +118,16 @@ void VexSim::InitConfigs()
 
 void VexSim::AddNodeToIdleList(Node *n, Config *conf)
 {
-	int i;
+	int i,count=0;
 	cout<<"\n Adding node "<<n->NodeNo<<" to idle list of config "<<conf->ConfigNo<<endl;
 	
 	//this is  a simple solution to the problem of multiple configurations of same configNo on a single node
 	//for now, in this situation a new entry will not be created to avoid circular pointer
 	for(i=0; i< n->Config_Task_Entries; i++)
 	{
-		if(n->Config_Task_List[i].config->ConfigNo == conf->ConfigNo )
-			return;
+		if(n->Config_Task_List[i].config->ConfigNo == conf->ConfigNo )	count++;
 	}
+	if(count>1) return;
 	
 	// update the idle list for the current node/config
 	// add the node to the current idle list at the starting point
@@ -164,7 +164,7 @@ void VexSim::RemoveNodeFromIdleList(Node *node, Config *conf)
 
 void VexSim::AddNodeToBusyList(Node *n , Config *conf)
 {
-	int i;
+	int i,count=0;
 	
 	cout<<"\n Adding node "<<n->NodeNo<<" to busy list of config "<<conf->ConfigNo<<endl;
 	
@@ -172,9 +172,9 @@ void VexSim::AddNodeToBusyList(Node *n , Config *conf)
 	//for now, in this situation a new entry will not be created to avoid circular pointer
 	for(i=0; i< n->Config_Task_Entries; i++)
 	{
-		if(n->Config_Task_List[i].config->ConfigNo == conf->ConfigNo )
-			return;
+		if(n->Config_Task_List[i].config->ConfigNo == conf->ConfigNo )	count++;
 	}
+	if(count>1) return;
 
 	// update the busy list for the current node/config
 	// add the node to the current busy list at the starting point
@@ -190,14 +190,14 @@ void VexSim::RemoveNodeFromBusyList(Node *node , Config *conf)
 	cout<<"\n Removing node "<<node->NodeNo<<" from busy list of config "<<conf->ConfigNo<<endl;	
 	
 	if(conf == NULL) 
-		{cout<<"\n conf is null Press "<<endl; getchar(); return;}
+		{cout<<"\n conf is null"<<endl; getchar(); return;}
 
 	if(configs[conf->ConfigNo].busy == NULL )
-		{cout<<"\n No busy list Press "<<endl; getchar(); return;}
+		{cout<<"\n No busy list"<<endl; getchar(); return;}
 	else
 		n=configs[conf->ConfigNo].busy;
 
-	cout<<"\n Busy List before removing Press "<<endl;
+	cout<<"\n Busy List before removing"<<endl;
 	if(DEBUG_MODE) getchar();
 	printOneBusyList(conf->ConfigNo);
 	if(DEBUG_MODE) getchar();
@@ -247,7 +247,13 @@ bool VexSim::GiveEntryNo(Node *n, Task * t, unsigned int * EntryNo)
 	{
 		if( n->Config_Task_List[i].task != NULL)
 		{
-			if(n->Config_Task_List[i].task == t)
+			if(n->Config_Task_List[i].config == NULL)
+			{
+			  cout<<"\n found task without configuration ..."<<endl;
+			  getchar();
+			}
+			  
+			if(n->Config_Task_List[i].task->TaskNo == t->TaskNo)
 			{
 				*EntryNo = i;
 				return true;			
@@ -257,9 +263,8 @@ bool VexSim::GiveEntryNo(Node *n, Task * t, unsigned int * EntryNo)
 	return false;
 }
 
-void VexSim::TaskCompletionProc(Node* n, Task * t)
+void VexSim::TaskCompletionProc(Node* n, Task * t, unsigned int EntryNo)
 {
-	unsigned int EntryNo;
 	//print task report summary
 	cout<<"Node # "<< n->NodeNo << " finished executing Task # "<< t->TaskNo <<endl;
 	
@@ -270,29 +275,14 @@ void VexSim::TaskCompletionProc(Node* n, Task * t)
 	TotalCompletedTasks++;
 	Total_Tasks_Running_Time+=t->RequiredTime;
 	
-	if( GiveEntryNo(n, t, &EntryNo) == true )
-	{	
-		if (t->SusRetry) 
-			cout<<"The task had been initially put in the suspension queue. "
-				<< n->Config_Task_List[EntryNo].task->SusRetry << " retries have been carried out before accommodation\n";
+	if (t->SusRetry)
+		cout<<"The task had been initially put in the suspension queue. "
+			<< n->Config_Task_List[EntryNo].task->SusRetry << " retries have been carried out before accommodation\n";
 
-		if(n->Config_Task_List[EntryNo].config == NULL)
-		{	
-			cout<<"\n t->TaskNo = "<<t->TaskNo<<endl;
-			cout<<"\n t->NodeNo = "<<n->NodeNo<<endl;
-			cout<<"\n n->Config_Task_List[EntryNo].config is null before going to removeNodefromBusyList"<<endl;
-			cout<<"\n EntryNo = "<<EntryNo<<endl;
-			getchar();
-		}
-		RemoveNodeFromBusyList(n,n->Config_Task_List[EntryNo].config);
-		cout<<"\n calling AddNodeToIdleList from TaskCompletionProc"<<endl;
-		AddNodeToIdleList(n,n->Config_Task_List[EntryNo].config);
-	}
-	else
-	{
-		cout<<"\n Task (TaskCompletion) "<<t->TaskNo<<" is not running on node "<<n->NodeNo<<endl;
-		getchar();
-	}
+	RemoveNodeFromBusyList(n,n->Config_Task_List[EntryNo].config);
+	cout<<"\n calling AddNodeToIdleList from TaskCompletionProc"<<endl;
+	AddNodeToIdleList(n,n->Config_Task_List[EntryNo].config);
+
 	if( RemoveTaskFromNode(n,t) == false )
 	{
 		cout<<"\n could not remove task "<<t->TaskNo <<" from node "<<n->NodeNo<<endl;
@@ -1074,7 +1064,7 @@ void VexSim::MakeReport()
 	f.close();
 }
 
-Task * VexSim::CompletedTask(Node * n)
+Task * VexSim::CompletedTask(Node * n, unsigned int *EntryNo)
 {
 	int i;
 	Task * t;
@@ -1086,6 +1076,7 @@ Task * VexSim::CompletedTask(Node * n)
 			if( (n->Config_Task_List[i].task)->CompletionTime == TimeTick)
 			{
 				t = n->Config_Task_List[i].task;
+				*EntryNo = i;
 				return t;
 			}
 		}
@@ -1098,6 +1089,7 @@ void VexSim::Start()
 {
 	unsigned long long int nextIncomTaskTimeTick=0;
 	Task* t;
+	unsigned int EntryNo;
 	
 	while( ( TotalCompletedTasks + TotalDiscardedTasks ) < TotalTasks )  // still there are tasks which are not finished
 	{
@@ -1117,13 +1109,13 @@ void VexSim::Start()
 					Task *tmp;
 					cout<<"\n There are still tasks running on some nodes "<<endl;
 					
-					tmp = CompletedTask( nodelist[i] );
+					tmp = CompletedTask( nodelist[i], &EntryNo );
 					
 					if( tmp ) //task termination housekeeping
 					{
 						cout<<"\n a task has been completed "<<endl;
 						
-						TaskCompletionProc(nodelist[i],tmp);
+						TaskCompletionProc(nodelist[i],tmp, EntryNo);
 						
 						//now lets have a look at suspension queue for a suspended task which can run on this node
 						tmp=CheckSuspensionQueue(nodelist[i]);
@@ -1137,7 +1129,6 @@ void VexSim::Start()
 						}
 					}
 				}
-				cout<<"\n There are no tasks running on any node "<<endl;
 			}
 			IncreaseTimeTick();  // advance one time tick
 		}// end of while ( TimeTick<=nextIncomTaskTimeTick )
@@ -1156,7 +1147,7 @@ void VexSim::Start()
 			<<"\n TotalCurSusTasks : "<<TotalCurSusTasks
 			<<endl;
 
-		//if(DEBUG_MODE) 
+		// if(DEBUG_MODE) 
 			getchar();
 		
 		//create the new scheduled task
