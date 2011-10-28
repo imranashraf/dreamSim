@@ -10,6 +10,9 @@ run: $(EXEC)
 	@-echo "Running Simulation ..."
 	@-./$(EXEC)
 
+valgrind: $(EXEC)
+	valgrind --tool=memcheck --log-fd=1 -v --show-reachable=yes --leak-check=yes --track-origins=yes ./$(EXEC)
+
 clean:
 	@-rm -f $(EXEC) 
 	@-echo "Cleaned Files successfully ..."

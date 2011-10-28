@@ -14,7 +14,7 @@
 #ifndef _VEX_SIM_
 #define _VEX_SIM_
 
-#define DEBUG_MODE 1
+#define DEBUG_MODE 0
 
 #define MAX_NODE_CONFIGS 30
 //this should be greater than total configurations
@@ -63,6 +63,9 @@ typedef struct N
 
 	struct N * Inext[MAX_NODE_CONFIGS];	//pointer to next idle node for a certain configuration, pointed by index of configuration
 	struct N * Bnext[MAX_NODE_CONFIGS];	//pointer to next busy node for a certain configuration, , pointed by index of configuration
+	
+	unsigned int CountInIdleList[MAX_NODE_CONFIGS]; //this will keep the count of this node in the idlelist of a config
+	unsigned int CountInBusyList[MAX_NODE_CONFIGS]; //this will keep the count of this node in the busylist of a config
 	
 } Node;
 
@@ -128,9 +131,12 @@ class VexSim
 			void printBusyLists();
 			void printOneBusyList(unsigned int confno);
 			void printIdleLists();
+			void printOneIdleList(unsigned int confno);
 			Task * GetAnyTaskFromSuspensionQueue();
 			void makeNodePartiallyBlank(Node *n, unsigned long int EntryNo);
 			bool NodeHasAnyRunningTasks(Node * n);
+			bool SearchIdleList(Node * n , unsigned int confno);
+			bool SearchBusyList(Node * n , unsigned int confno);
 			
 			// Vex Scheduler Code..... different strategies should be implemented as the body of this function
 			void RunVexScheduler(Task *);
@@ -152,7 +158,8 @@ class VexSim
 			unsigned long int TotalCurGenTasks;
 			unsigned long int TotalCurSusTasks;
 			unsigned long int TotalDiscardedTasks;
-			
+			unsigned long int LastTaskCompletionTime;
+			unsigned long int SchduledTasks;
 			
 			// Node * nodesList;
 			Config * configs;
