@@ -1,7 +1,7 @@
-// VexSim v1.0
 // This is software simulator for task scheduling on Vex multiprocessor systems
-// written by Arash Ostadzadeh
-// ostadzadeh@gmail.com
+// written by:
+// Arash Ostadzadeh (ostadzadeh@gmail.com)
+// Imran Ashraf	(imran.ashraf@ymail.com) 
 
 #include <iostream>
 #include <fstream>
@@ -15,6 +15,7 @@
 #define _VEX_SIM_
 
 #define DEBUG_MODE 0
+#define TASK_TRACK_MODE 0
 
 #define MAX_NODE_CONFIGS 30
 //this should be greater than total configurations
@@ -83,8 +84,8 @@ class VexSim
 {
 	public:
 			VexSim(unsigned int TN=100,unsigned int TC=10, unsigned long int TT=10000, 
-					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=1000, unsigned int NhighA=5000,
-					unsigned int TlowA=500, unsigned int ThighA=6000,
+					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=500, unsigned int NhighA=3000,
+					unsigned int TlowA=500, unsigned int ThighA=5000,
 					unsigned int TRTlow=100, unsigned int TRThigh=10000,
 					unsigned int ConfTmL=1 , unsigned int ConfTmH=3,
 				    unsigned int NWDH=800 , unsigned int NWDL=200);
