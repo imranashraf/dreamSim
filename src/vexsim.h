@@ -17,8 +17,10 @@
 #define DEBUG_MODE 0
 #define TASK_TRACK_MODE 0
 
-#define MAX_NODE_CONFIGS 30
+#define MAX_NODE_CONFIGS 15
 //this should be greater than total configurations
+
+#define PARTIAL_CONFIG_PENALTY 10
 
 struct Config;
 
@@ -84,10 +86,10 @@ class VexSim
 {
 	public:
 			VexSim(unsigned int TN=100,unsigned int TC=10, unsigned long int TT=10000, 
-					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=500, unsigned int NhighA=3000,
+					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=500, unsigned int NhighA=8000,
 					unsigned int TlowA=500, unsigned int ThighA=5000,
 					unsigned int TRTlow=100, unsigned int TRThigh=10000,
-					unsigned int ConfTmL=1 , unsigned int ConfTmH=3,
+					unsigned int ConfTmL=10 , unsigned int ConfTmH=30,
 				    unsigned int NWDH=800 , unsigned int NWDL=200);
 					
 			void Start();
@@ -176,7 +178,7 @@ class VexSim
 			
 			unsigned long long int Total_Wasted_Area;
 			unsigned long long int Total_Search_Length_Scheduler; // It accounts only for the steps taken by the scheduler to accommodate tasks (to find the bestmatch, idlenodes, blanknodes) not looking at the suspension queue
-			unsigned long long int Total_Scheduler_Workload; // Total search workload scheduler has to go through during one simulation run
+			unsigned long long int Total_Simulation_Workload; // Total search workload simulation has to go through during one simulation run
 			unsigned long long int Total_Task_Wait_Time;
 			unsigned long long int Total_Tasks_Running_Time;
 			unsigned long long int Total_Configuration_Time;

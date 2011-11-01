@@ -8,7 +8,7 @@
 
 int main(int argc, char **argv)
 {
-	unsigned long int TT=100,TN=15,TC=10;
+	unsigned long int TT=1000,TN=20,TC=15;
 	VexSim VS(TN,TC,TT);
 	VS.Start();
 	
