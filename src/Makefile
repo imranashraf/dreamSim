@@ -9,6 +9,8 @@ all: $(CPPSOURCES) $(HSOURCES)
 run: $(EXEC)
 	@-echo "Running Simulation ..."
 	@-./$(EXEC)
+openfiles:
+	kate Makefile main.cpp vexsim.h vexsim.cpp &
 
 valgrind: $(EXEC)
 	valgrind --tool=memcheck --log-fd=1 -v --show-reachable=yes --leak-check=yes --track-origins=yes ./$(EXEC)

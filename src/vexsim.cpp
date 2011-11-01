@@ -429,7 +429,9 @@ void VexSim::SendTaskToNode(Task *t, Node *n)
 		
 		// update some report statistics
 		Total_Configuration_Time+= conftime;
-		Total_Wasted_Area += n->AvailableArea - conf->RequiredArea;
+ 		//Total_Wasted_Area += n->AvailableArea - conf->RequiredArea;
+		Total_Wasted_Area += (n->AvailableArea);
+	
 		Total_Task_Wait_Time += ( t->StartTime - t->CreateTime) + conftime; 
 							// basically start time is the time for starting the configuration process, 
 							// i.e we have identified optimal/preffered/... node and we want to configure it
@@ -459,7 +461,6 @@ bool VexSim::addTaskToNode(Node *node, Task *task)
 		  )
 		{
 			node->Config_Task_List[i].task = task;
-			(node->AvailableArea) -= (task->NeededArea);
 			return true;
 		}
 
@@ -478,7 +479,7 @@ Task * VexSim::CreateTask()
 	if (!t) { cerr<<"\nError in memory allocation for Task # " << TotalCurGenTasks <<"\n"; exit(1);}
 	
 	t->TaskNo=TotalCurGenTasks;
-	t->NeededArea=(x.rand_int31()%(TaskhighA-TasklowA+1))+TasklowA;
+ 	t->NeededArea=(x.rand_int31()%(TaskhighA-TasklowA+1))+TasklowA;
 	
 	// we will assume about 10% of the created tasks preferring a configuration which is not available in the system
 	// the criterion can be changed later
@@ -621,10 +622,16 @@ Config* VexSim::findPreferredConfig(Task *t)
 
 Config* VexSim::findClosestConfig(Task *t)
 {
-	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
+    unsigned int cno;
+    Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 	
-	// for now just a random config # will be picked up as the closest match
-	return &configs[(x.rand_int31()%TotalConfigs)];
+	
+    for(cno=0; cno < TotalConfigs; cno++)
+    {
+	if ( (configs[cno].RequiredArea <= configs[t->PrefConfig].RequiredArea)  && (cno != t->PrefConfig) )
+	    return &configs[cno];
+    }
+    return NULL;
 }
 
 Node* VexSim::findAnyIdleNode(Task* t,unsigned long long int& SL, unsigned long int * EntryNo)
@@ -829,7 +836,6 @@ void VexSim::makeNodeBlank(Node *n)
 	n->Config_Task_Entries = 0;
 	n->AvailableArea = n->TotalArea;
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
-	getchar();
 }
 
 //this will make the node partially blank
@@ -851,13 +857,18 @@ void VexSim::makeNodePartiallyBlank(Node *n, unsigned long int EntryNo)
 	
 	n->Config_Task_Entries--;  //reduce one entry no as it is going to be reconfigured
 	Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
-	getchar();
 }
 
 void VexSim::sendBitstream(Node *n, Config *conf)
 {
 	(n->ReConfigCount)++;
 	n->Config_Task_List[n->Config_Task_Entries].config = conf;
+	
+	//a configuration is added so area available on node will decrease based upon the required area of configuration
+	cout<<"\n Node "<<n->NodeNo<<" has n->AvailableArea before : "<<n->AvailableArea <<endl;
+	(n->AvailableArea) -= conf->RequiredArea;
+	cout<<"\n configno "<<conf->ConfigNo<<" has required area : "<<conf->RequiredArea <<endl;
+	cout<<"\n Node "<<n->NodeNo<<" has n->AvailableArea : "<<n->AvailableArea <<endl;
 	
 	//now that we have a certain configuration on the node, we should
 	//add this node to idle list for this particular configuration
@@ -1052,44 +1063,53 @@ void VexSim::RunVexScheduler(Task *t)
 	
 	if(!found) // no exact match! or we have exact match but can not accommodate in any way the current task at this moment!
 	{
-	cout<<"\n Trying closest configuration options "<<endl;
-		Closestmatch=findClosestConfig(t); // we assume that there is always a closest config match
-											// for now because we actually do not look for closest match the SL is not increased,
-											// in reality SL is also increased correspondingly to indicate the search effort
-		t->AssignedConfig=Closestmatch->ConfigNo; // set the assigned config for the current task
-		Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
+	    cout<<"\n Trying closest configuration options "<<endl;
+	    Closestmatch=findClosestConfig(t); // we assume that there is always a closest config match
+						// for now because we actually do not look for closest match the SL is not increased,
+						// in reality SL is also increased correspondingly to indicate the search effort
+		if(Closestmatch != NULL)
+		{
+		    
+		    t->AssignedConfig=Closestmatch->ConfigNo; // set the assigned config for the current task
+		    Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
 
-				
-		if(Closestmatch->idle) // there are idle nodes available with the closest config
-		{
-			n=findBestNodeMatch(t,Closestmatch->idle,SL); // SL is an output argument associated with the search length to find the best match
+				    
+		    if(Closestmatch->idle) // there are idle nodes available with the closest config
+		    {
+			    cout<<"Trying Allocation for Closest configuration"<<endl;
+			    n=findBestNodeMatch(t,Closestmatch->idle,SL); // SL is an output argument associated with the search length to find the best match
+		    
+			    if (n) 
+			    {	
+				    cout<<"Doing Allocation for Closest configuration"<<endl;
+				    SchduledTasks++;
+				    Total_Search_Length_Scheduler+=SL;
+				    SendTaskToNode(t,n);  // found a suitable node
+				    found=true;
+			    }
+		    }
 		
-			if (n) 
-			{	
-				SchduledTasks++;
-				Total_Search_Length_Scheduler+=SL;
-				SendTaskToNode(t,n);  // found a suitable node
-				found=true;
-			}
-		}
+		    if(!found) // no (suitable) idle nodes available
+		    {
+			    // in case we are coming from an exact match configuration part, we have already searched 
+			    // the blank list and no need for a re-search
+			    if( !Cmatch	)  //check this cmatch heere later
+			    {
+				    cout<<"Trying Configuration for Closest configuration"<<endl;
+				    n=findBestBlankNodeMatch(t,SL);
+				    if (n)
+				    {
+					    cout<<"Doing Configuration for Closest configuration"<<endl;
+					    SchduledTasks++;				
+					    Total_Search_Length_Scheduler+=SL;
+					    Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
+					    sendBitstream(n,Closestmatch);
+					    SendTaskToNode(t,n);
+					    found=true;
+				    }
+			    }// end of blank node(s) still available
+		    }
 		
-		if(!found) // no (suitable) idle nodes available
-		{
-			// in case we are coming from an exact match configuration part, we have already searched 
-			// the blank list and no need for a re-search
-			if( !Cmatch	)  //check this cmatch heere later
-			{
-				n=findBestBlankNodeMatch(t,SL);
-				if (n)
-				{
-					SchduledTasks++;				
-					Total_Search_Length_Scheduler+=SL;
-					Total_Scheduler_Workload++; //Scheduler workload is associated with total scheduler workload required during one simulation run.
-					sendBitstream(n,Closestmatch);
-					SendTaskToNode(t,n);
-					found=true;
-				}
-			}// end of blank node(s) still available
 		}
 		
 		if(!found) // no blank node available or there is no suitable blank node available!!!
