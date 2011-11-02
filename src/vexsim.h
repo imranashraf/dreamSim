@@ -17,7 +17,9 @@
 #define DEBUG_MODE 0
 #define TASK_TRACK_MODE 0
 
-#define MAX_NODE_CONFIGS 15
+#define MAX_NODE_CONFIGS 1
+#define MAX_CONFIGS 15
+
 //this should be greater than total configurations
 
 #define PARTIAL_CONFIG_PENALTY 10
@@ -64,11 +66,11 @@ typedef struct N
 	unsigned long ReConfigCount;	//reconfig count
 	unsigned int NetworkDelay;
 
-	struct N * Inext[MAX_NODE_CONFIGS];	//pointer to next idle node for a certain configuration, pointed by index of configuration
-	struct N * Bnext[MAX_NODE_CONFIGS];	//pointer to next busy node for a certain configuration, , pointed by index of configuration
+	struct N * Inext[MAX_CONFIGS];	//pointer to next idle node for a certain configuration, pointed by index of configuration
+	struct N * Bnext[MAX_CONFIGS];	//pointer to next busy node for a certain configuration, , pointed by index of configuration
 	
-	unsigned int CountInIdleList[MAX_NODE_CONFIGS]; //this will keep the count of this node in the idlelist of a config
-	unsigned int CountInBusyList[MAX_NODE_CONFIGS]; //this will keep the count of this node in the busylist of a config
+	unsigned int CountInIdleList[MAX_CONFIGS]; //this will keep the count of this node in the idlelist of a config
+	unsigned int CountInBusyList[MAX_CONFIGS]; //this will keep the count of this node in the busylist of a config
 	
 } Node;
 
@@ -86,8 +88,8 @@ class VexSim
 {
 	public:
 			VexSim(unsigned int TN=100,unsigned int TC=10, unsigned long int TT=10000, 
-					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=500, unsigned int NhighA=8000,
-					unsigned int TlowA=500, unsigned int ThighA=5000,
+					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=500, unsigned int NhighA=5000,
+					unsigned int TlowA=500, unsigned int ThighA=6000,
 					unsigned int TRTlow=100, unsigned int TRThigh=10000,
 					unsigned int ConfTmL=10 , unsigned int ConfTmH=30,
 				    unsigned int NWDH=800 , unsigned int NWDL=200);

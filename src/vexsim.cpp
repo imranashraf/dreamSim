@@ -81,10 +81,14 @@ void VexSim::InitNodes()
 		
 		n->NetworkDelay = (x.rand_int31()%(NWDHigh-NWDLow+1))+NWDLow;
 		
-		for (j=0; j < MAX_NODE_CONFIGS ;j++) //MAX_NODE_CONFIGS not TotalConfigs
+		for (j=0; j < MAX_NODE_CONFIGS ;j++) 
 		{
 			n->Config_Task_List[j].task = NULL;
 			n->Config_Task_List[j].config = NULL;
+		}
+		
+		for (j=0; j < MAX_CONFIGS ;j++) 
+		{
 			n->Inext[j]=NULL;
 			n->Bnext[j]=NULL;
 			n->CountInIdleList[j]=0;
