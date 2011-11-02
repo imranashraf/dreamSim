@@ -950,20 +950,83 @@ bool VexSim::queryBusyListforPotentialCandidate(Task *t, unsigned long long int&
 
 void VexSim::PutInSuspensionQueue(Task *t)
 {
-	SusList* cur;
+	SusList* newtask, * current;
 	
-	cur=new SusList;
-	if(!cur) { cerr<<"\nError in memory allocation for suspended task list.\n"; exit(1);}
+	newtask = new SusList;
+	if(!newtask) { cerr<<"\nError in memory allocation for suspended task list.\n"; exit(1);}
 	
 	cout<<"\n putting the task # "<<t->TaskNo<<" on the suspended tasks queue\n";
 	if(TASK_TRACK_MODE) getchar();
 	
-	cur->item=t;
-	cur->next=suspendedlist;
-	suspendedlist=cur;
+	newtask->item=t;
+	newtask->next = NULL;
+
+	current = suspendedlist;
+	if(current == NULL)
+	{	
+		//put as first element
+		newtask->next=NULL;
+		suspendedlist=newtask;
+	}
+	else
+	{
+		while (current) //there is a suspended list
+		{
+			Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
+			
+			if( configs[t->AssignedConfig].RequiredArea <= configs[current->item->AssignedConfig].RequiredArea )
+			{	//put as first element
+				newtask->next=suspendedlist;
+				suspendedlist=newtask;
+				break;
+			}
+			else
+			{	
+				if (current->next == NULL) //single entry already available in the suspension queue
+				{
+					current->next = newtask;
+					newtask->next = NULL;
+					break;
+				}
+				else //multiple entries available in the suspension queue
+				{
+					if (configs[t->AssignedConfig].RequiredArea > configs[current->item->AssignedConfig].RequiredArea &&
+						configs[t->AssignedConfig].RequiredArea <= configs[current->next->item->AssignedConfig].RequiredArea )
+					{
+						newtask->next = current->next;
+						current->next = newtask;
+						break;
+					}
+					else
+					{
+						current = current->next;
+					}
+				}
+				
+			}	
+					
+		}
+	}
+	
 	TotalCurSusTasks++;
-	Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
 }
+
+// void VexSim::PutInSuspensionQueue(Task *t)
+// {
+// 	SusList* cur;
+// 	
+// 	cur=new SusList;
+// 	if(!cur) { cerr<<"\nError in memory allocation for suspended task list.\n"; exit(1);}
+// 	
+// 	cout<<"\n putting the task # "<<t->TaskNo<<" on the suspended tasks queue\n";
+// 	if(TASK_TRACK_MODE) getchar();
+// 	
+// 	cur->item=t;
+// 	cur->next=suspendedlist;
+// 	suspendedlist=cur;
+// 	TotalCurSusTasks++;
+// 	Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
+// }
 
 void VexSim::DiscardTask(Task *t)
 {
@@ -1167,9 +1230,12 @@ void VexSim::RunVexScheduler(Task *t)
 void VexSim::MakeReport()
 {
 	ofstream f;
-	
 	sprintf (fileName, "%d", TotalTasks);
-	strcat(fileName, ".txt");
+	
+	if(MAX_NODE_CONFIGS == 1)
+		strcat(fileName, "_FullConfig.txt");
+	else
+		strcat(fileName, "_PartialConfig.txt");		
 	  	  
 	f.open(fileName);
 	if (f.fail()) 
@@ -1177,15 +1243,16 @@ void VexSim::MakeReport()
 		cout<<"\n failed opening the simulation report file.\n"; exit(1); 
 	}
 	  
+	f<<"MAX_NODE_CONFIGS\t"<<MAX_NODE_CONFIGS<<endl;
 	f<<"total_tasks_generated\t"<<TotalTasks<<endl;
 	f<<"total_PEs\t"<<TotalNodes<<endl;
 	f<<"total_configurations\t"<<TotalConfigs<<endl;
 	f<<"total_simulation_time\t"<<TimeTick<<endl;
-
-	f<<"task_generation_interval\t[ 1 ... "<<NextTaskMaxInterval<<" ]"<<endl;
+	
+/*	f<<"task_generation_interval_Min\t[ 1 ... "<<NextTaskMaxInterval<<" ]"<<endl;
 	f<<"PE_available_area_range\t[ "<<NodelowA<<" ... "<<NodehighA<<" ]"<<endl;
 	f<<"task_required_area_range\t[ "<<TasklowA<<" ... "<<TaskhighA<<" ]"<<endl;
-	f<<"task_required_timeslice_range\t[ "<<TaskReqTimelow<<" ... "<<TaskReqTimehigh<<" ]"<<endl;
+	f<<"task_required_timeslice_range\t[ "<<TaskReqTimelow<<" ... "<<TaskReqTimehigh<<" ]"<<endl;*/
 	
 	f<<"total_tasks_completed\t"<<TotalCompletedTasks<<endl;
 	f<<"total_tasks_discarded\t"<<TotalDiscardedTasks<<endl;
@@ -1322,7 +1389,8 @@ void VexSim::Start()
 			Task * tmp;
 			cout<<"All tasks alredy created, fetching a task from suspension queue for scheduling "<<endl;
 			tmp=GetAnyTaskFromSuspensionQueue(); //at this point, this will fetch first
-			if(TASK_TRACK_MODE) getchar();
+			cout<<"Fetched Task "<<tmp->TaskNo<<" from Suspension queue with area required "<<configs[tmp->AssignedConfig].RequiredArea<<endl;
+			if(TASK_TRACK_MODE)	getchar();
 			RunVexScheduler(tmp);
 		}
 		// else  	all the created tasks have been dealt with

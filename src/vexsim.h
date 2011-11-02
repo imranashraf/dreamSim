@@ -17,7 +17,7 @@
 #define DEBUG_MODE 0
 #define TASK_TRACK_MODE 0
 
-#define MAX_NODE_CONFIGS 15
+#define MAX_NODE_CONFIGS 10
 
 //this should be greater than total configurations
 
