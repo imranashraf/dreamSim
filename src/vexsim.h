@@ -17,8 +17,7 @@
 #define DEBUG_MODE 0
 #define TASK_TRACK_MODE 0
 
-#define MAX_NODE_CONFIGS 1
-#define MAX_CONFIGS 15
+#define MAX_NODE_CONFIGS 15
 
 //this should be greater than total configurations
 
@@ -66,11 +65,11 @@ typedef struct N
 	unsigned long ReConfigCount;	//reconfig count
 	unsigned int NetworkDelay;
 
-	struct N * Inext[MAX_CONFIGS];	//pointer to next idle node for a certain configuration, pointed by index of configuration
-	struct N * Bnext[MAX_CONFIGS];	//pointer to next busy node for a certain configuration, , pointed by index of configuration
+	struct N ** Inext;	//pointer to next idle node for a certain configuration, pointed by index of configuration
+	struct N ** Bnext;	//pointer to next busy node for a certain configuration, , pointed by index of configuration
 	
-	unsigned int CountInIdleList[MAX_CONFIGS]; //this will keep the count of this node in the idlelist of a config
-	unsigned int CountInBusyList[MAX_CONFIGS]; //this will keep the count of this node in the busylist of a config
+	unsigned int * CountInIdleList; //this will keep the count of this node in the idlelist of a config
+	unsigned int * CountInBusyList; //this will keep the count of this node in the busylist of a config
 	
 } Node;
 

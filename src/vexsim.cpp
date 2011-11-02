@@ -73,6 +73,18 @@ void VexSim::InitNodes()
 		n=new Node;
 		if(!n) { cerr<<"\nError in memory allocation.\n"; exit(1);}
 		
+		n->Inext = new Node *[TotalConfigs];
+		if(!(n->Inext) ) { cerr<<"\nError in memory allocation.\n"; exit(1);}
+		
+		n->Bnext = new Node *[TotalConfigs];
+		if(!(n->Bnext) ) { cerr<<"\nError in memory allocation.\n"; exit(1);}
+
+		n->CountInIdleList = new unsigned int [TotalConfigs];
+		if(!(n->CountInIdleList) ) { cerr<<"\nError in memory allocation.\n"; exit(1);}
+
+		n->CountInBusyList = new unsigned int [TotalConfigs];
+		if(!(n->CountInBusyList) ) { cerr<<"\nError in memory allocation.\n"; exit(1);}
+
 		n->ReConfigCount=0; //counter for the no of configurations for this node
 		n->NodeNo=i;  // The Node numbers are starting from 0.
 		n->TotalArea=(x.rand_int31()%(NodehighA-NodelowA+1))+NodelowA;
@@ -87,7 +99,7 @@ void VexSim::InitNodes()
 			n->Config_Task_List[j].config = NULL;
 		}
 		
-		for (j=0; j < MAX_CONFIGS ;j++) 
+		for (j=0; j < TotalConfigs ;j++) 
 		{
 			n->Inext[j]=NULL;
 			n->Bnext[j]=NULL;
