@@ -62,6 +62,7 @@ void VexSim::InitNodes()
 {
 	unsigned int i,j;
 	Node *n;
+
 	
 	nodelist=new Node*[TotalNodes];
 	if(!nodelist) { cerr<<"\nError in memory allocation.\n"; exit(1);}
@@ -88,6 +89,7 @@ void VexSim::InitNodes()
 		n->ReConfigCount=0; //counter for the no of configurations for this node
 		n->NodeNo=i;  // The Node numbers are starting from 0.
 		n->TotalArea=(x.rand_int31()%(NodehighA-NodelowA+1))+NodelowA;
+
 		n->AvailableArea = n->TotalArea;
 		n->Config_Task_Entries=0;
 		
@@ -111,11 +113,25 @@ void VexSim::InitNodes()
 		
 		Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
 	}
+	
+
 }
 
 void VexSim::InitConfigs()
 {
 	int i;
+
+	ofstream dumpf;
+	dumpf.open("dump.txt");
+	if (dumpf.fail()) 
+	{ 
+		cout<<"\n failed opening the dump file.\n"; exit(1); 
+	}
+	
+/*	for(i=0;i<100;i++)
+	{
+		dumpf<<( x.rand_int31()% ( (unsigned int) (1.1 * TotalConfigs) ) )<<"  "<<x.rand_int31()<< endl;
+	}*/
 	
 	configs=new Config[TotalConfigs];
 	if(!configs) { cerr<<"\nError in memory allocation.\n"; exit(1);}
@@ -125,6 +141,7 @@ void VexSim::InitConfigs()
 		configs[i].ConfigNo=i;  // ConfigNo are beginning from 0
 		
 		configs[i].RequiredArea = (x.rand_int31()%(TaskhighA-TasklowA+1))+TasklowA;
+		//dumpf<<configs[i].RequiredArea<<endl;
 		
 		//Cofiguration time is a function of area required for certain configuration
 		configs[i].ConfigTime = (configs[i].RequiredArea) / TasklowA + 5; //where 5 is some overhead which will alsways be there
@@ -134,6 +151,7 @@ void VexSim::InitConfigs()
 		
 		Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
     }
+    dumpf.close();    
 }
 
 bool VexSim::SearchIdleList(Node * n , unsigned int confno)
@@ -499,7 +517,7 @@ Task * VexSim::CreateTask()
 	if (!t) { cerr<<"\nError in memory allocation for Task # " << TotalCurGenTasks <<"\n"; exit(1);}
 	
 	t->TaskNo=TotalCurGenTasks;
- 	t->NeededArea=(x.rand_int31()%(TaskhighA-TasklowA+1))+TasklowA;
+ 	//t->NeededArea=(x.rand_int31()%(TaskhighA-TasklowA+1))+TasklowA;
 	
 	// we will assume about 10% of the created tasks preferring a configuration which is not available in the system
 	// the criterion can be changed later
@@ -637,52 +655,68 @@ Config* VexSim::findPreferredConfig(Task *t)
 	if (t->PrefConfig < TotalConfigs) 
 		return &configs[t->PrefConfig];
 	
+	//configs[t->PrefConfig].RequiredArea;
+	
 	return NULL; // no exact match
 }
 
 Config* VexSim::findClosestConfig(Task *t)
 {
     unsigned int cno;
-    Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
-	
 	
     for(cno=0; cno < TotalConfigs; cno++)
     {
-	if ( (configs[cno].RequiredArea <= configs[t->PrefConfig].RequiredArea)  && (cno != t->PrefConfig) )
-	    return &configs[cno];
+		Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.		
+		if ( (configs[cno].RequiredArea <= configs[t->PrefConfig].RequiredArea)  && (cno != t->PrefConfig) )
+			return &configs[cno];
     }
     return NULL;
 }
 
-Node* VexSim::findAnyIdleNode(Task* t,unsigned long long int& SL, unsigned long int * EntryNo)
+Node* VexSim::findAnyIdleNode(Task* t,unsigned long long int& SL, unsigned long int EntryDetails[MAX_NODE_CONFIGS+1] )
 {
- 	Node * n;
-	unsigned long int i,j;
- 	// trying to find any (first) available idle node with any kind of configuration
- 	
+	Node * n;
+	unsigned long int i,j,k, taskReqArea , accumIdleArea;
+	
+	// trying to find any (first) available idle node with any kind of configuration
 	for ( i=0; i < TotalNodes; i++)
- 	{
+	{
+		//accumIdleArea = 0;
+		EntryDetails[0] = 0; //initially there are no entries		
+		k=1; //for EntryDetails array, first entry is the number of entries
+		
 		n = nodelist[i];
+		accumIdleArea = n->AvailableArea; //which we have to consider any ways for every comparison
 		for (j=0; j < n->Config_Task_Entries; j++)
 		{
-		    if(n->Config_Task_List[j].task == NULL)
+			if(n->Config_Task_List[j].task == NULL)
 			{
-				if 	(
-					(n->Config_Task_List[j].config->RequiredArea >= (configs[t->PrefConfig].RequiredArea)  ) &&
-					(n->Config_Task_Entries < MAX_NODE_CONFIGS)
-					)
+				accumIdleArea += n->Config_Task_List[j].config->RequiredArea;
+				taskReqArea = (configs[t->PrefConfig].RequiredArea);
+				EntryDetails[k++] = j; //record the entry no in this array
+				EntryDetails[0] ++;   //and also update the number of entries
+				
+				if(DEBUG_MODE) 
 				{
-					*EntryNo=j;
+					cout<<"\n accumIdleArea = "<<accumIdleArea;
+					cout<<"\n taskReqArea = "<<taskReqArea;
+					cout<<"\n EntryDetails[0] = "<<EntryDetails[0];
+					cout<<"\n EntryDetails[1] = "<<EntryDetails[1]<<endl;
+					
+					getchar();
+				}
+				
+				if 	( accumIdleArea >= taskReqArea  ) //&& n->Config_Task_Entries < MAX_NODE_CONFIGS )
+				{
 					return n;
 				}
 			}
 			SL++;
 			Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
 		}
- 	}
+	}
 	return NULL;
 }
-
 
 Node* VexSim::findBestBlankNodeMatch(Task* t,unsigned long long int& SL)
 {
@@ -1061,10 +1095,10 @@ void VexSim::RunVexScheduler(Task *t)
 	if (Cmatch) // required configuration was found in the list (exact match)
 	{
 		t->AssignedConfig = Cmatch->ConfigNo; // set the assigned config for the current task
-		
+
+		cout<<"Trying Allocation"<<endl;
 		if(Cmatch->idle) // there are idle nodes available with the preferred config
 		{
-			cout<<"Trying Allocation"<<endl;
 			n=findBestNodeMatch(t,Cmatch->idle,SL); // SL is an output argument associated with the search length to find the best match
 			Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
 		
@@ -1077,7 +1111,6 @@ void VexSim::RunVexScheduler(Task *t)
 				found=true;
 			}
 		}
-		
 		
 		if(!found) // no suitable idle node found at this point
 		{
@@ -1094,61 +1127,88 @@ void VexSim::RunVexScheduler(Task *t)
 				SendTaskToNode(t,n);
 				found=true;					
 			}
+		}
 			
-			if(!found) // no suitable idle node found at this point
+		if(!found) // no suitable idle node found at this point
+		{
+			cout<<"Trying Partial configuration"<<endl;
+			n=findBestPartiallyBlankNodeMatch(t,SL);
+			if (n)   //partial configuration of a node
 			{
-				cout<<"Trying Partial configuration"<<endl;
-				n=findBestPartiallyBlankNodeMatch(t,SL);
-				if (n)   //partial configuration of a node
-				{
-					cout<<"Doing Partial configuration"<<endl;
-					SchduledTasks++;			
-					Total_Search_Length_Scheduler+=SL;
-					Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
-					cout<<"\n Sending bit stream for configuration "<<Cmatch->ConfigNo<<" to node "<<n->NodeNo<<endl;
-					sendBitstream(n,Cmatch);
-					Total_Configuration_Time += PARTIAL_CONFIG_PENALTY;
-					SendTaskToNode(t,n);
-					found=true;					
-				}
-				
-				
-				if(!found) // no blank node available or there is no suitable blank node available!!!
-				{			// try reconfiguring one of the idle nodes!
-					unsigned long int EntryNo;
-					cout<<"Trying Partial re-configuration"<<endl;
-					n=findAnyIdleNode(t,SL,&EntryNo);  	//this will look for partially idle node 
-												//i.e. a node with a configuration but idle, so that we can reconfigure it
-												//and if it can find, then only that part will be reconfigured
-					if (n) // An idle node is found for reconfiguration
-					{
-						cout<<"Doing Partial re-configuration"<<endl;
-						SchduledTasks++;				
-						Total_Search_Length_Scheduler+=SL;
- 						//RemoveNodeFromIdleList(n,&configs[t->AssignedConfig]);
-						RemoveNodeFromIdleList(n, n->Config_Task_List[EntryNo].config);
-						
-						makeNodePartiallyBlank(n, EntryNo); //this will delete this Entry only
-						Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
-						sendBitstream(n, &configs[t->AssignedConfig] ); 	//sendbitstream in this context will do its usual job, configuration will be added at the end 
-										//as the partial reconfiguration thing has already been dealt with in the above lines
-						SendTaskToNode(t,n);
-						found=true;
-					}
-				}// end of doing reconfiguration for one of the idle nodes
-				
+				cout<<"Doing Partial configuration"<<endl;
+				SchduledTasks++;			
+				Total_Search_Length_Scheduler+=SL;
+				Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
+				cout<<"\n Sending bit stream for configuration "<<Cmatch->ConfigNo<<" to node "<<n->NodeNo<<endl;
+				sendBitstream(n,Cmatch);
+				Total_Configuration_Time += PARTIAL_CONFIG_PENALTY;
+				SendTaskToNode(t,n);
+				found=true;					
 			}
 		}
+				
+		if(!found) // no blank node available or there is no suitable blank node available!!!
+		{			// try reconfiguring one of the idle nodes!
+			cout<<"Trying Partial re-configuration"<<endl;
+			unsigned long int EntryDetails[MAX_NODE_CONFIGS+1]; //which contains the details of the entries to be reconfigured
+																	//first element will indicate the number of entries and rest
+																	//of the elements in the array are the eactual entry numbers
+			
+			//this will look for partially idle node i.e. a node with a configuration but idle, so that we can reconfigure it
+			//and if it can find, then only that part will be reconfigured
+			n=findAnyIdleNode(t,SL,EntryDetails);  	
+			if (n) // An idle node is found for reconfiguration
+			{
+				cout<<"Doing Partial re-configuration"<<endl;
+				Total_Search_Length_Scheduler+=SL;
+				
+				for (int temp = 1; temp <= EntryDetails[0] ; temp++)
+				{
+					//RemoveNodeFromIdleList(n,&configs[t->AssignedConfig]);
+					RemoveNodeFromIdleList(n, n->Config_Task_List[ EntryDetails[temp] ].config);
+					
+					makeNodePartiallyBlank(n, EntryDetails[temp] ); //this will delete this Entry only
+					
+					SchduledTasks++;
+					Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
+				}
+				
+				sendBitstream(n, &configs[t->AssignedConfig] ); 	//sendbitstream in this context will do its usual job, configuration will be added at the end 
+								//as the partial reconfiguration thing has already been dealt with in the above lines
+				SendTaskToNode(t,n);
+				found=true;
+			}
+		}// end of doing reconfiguration for one of the idle nodes
+				
+		// no blank node available or there is no suitable blank node available!!!
+		// we are going to wait for a busy node to become idle!
+		// The last solution!			    
+		if(!found) 
+		{
+			Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
+			
+			found=queryBusyListforPotentialCandidate(t,SL); // determine whether or not the current busy list has any potential candidate for 
+			// accommodating the task regarding the Area restriction
+			Total_Search_Length_Scheduler+=SL;
+			
+			if( found )   // if yes, we can accomodate sometime in future
+			{
+				PutInSuspensionQueue(t);
+			}
+			// we can also go for another check with all busy nodes and do a reconfig later if needed, not considered in this scheduler!!!
+			else 
+			{
+				DiscardTask(t); // bad task, throw it away! 
+			}
+		} // end of waiting!
+
 		// exact match found / but the was no idle nodes available
 		//--------------------------------------------------------------------------------------------------------
 		// if you want to wait for a busy node with exact match to become available this is the point to add the rountine!!!
 		//---------------------------------------------------------------------------------------------------------
 		
 	}// end of exact match for the configuration
-
-	
-	
-	if(!found) // no exact match! or we have exact match but can not accommodate in any way the current task at this moment!
+	else
 	{
 	    cout<<"\n Trying closest configuration options "<<endl;
 	    Closestmatch=findClosestConfig(t); // we assume that there is always a closest config match
@@ -1160,10 +1220,9 @@ void VexSim::RunVexScheduler(Task *t)
 		    t->AssignedConfig=Closestmatch->ConfigNo; // set the assigned config for the current task
 		    Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
 
-				    
+			cout<<"Trying Allocation for Closest configuration"<<endl;				    
 		    if(Closestmatch->idle) // there are idle nodes available with the closest config
 		    {
-			    cout<<"Trying Allocation for Closest configuration"<<endl;
 			    n=findBestNodeMatch(t,Closestmatch->idle,SL); // SL is an output argument associated with the search length to find the best match
 		    
 			    if (n) 
@@ -1178,48 +1237,97 @@ void VexSim::RunVexScheduler(Task *t)
 		
 		    if(!found) // no (suitable) idle nodes available
 		    {
-			    // in case we are coming from an exact match configuration part, we have already searched 
-			    // the blank list and no need for a re-search
-			    if( !Cmatch	)  //check this cmatch heere later
-			    {
-				    cout<<"Trying Configuration for Closest configuration"<<endl;
-				    n=findBestBlankNodeMatch(t,SL);
-				    if (n)
-				    {
-					    cout<<"Doing Configuration for Closest configuration"<<endl;
-					    SchduledTasks++;				
-					    Total_Search_Length_Scheduler+=SL;
-					    Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
-					    sendBitstream(n,Closestmatch);
-					    SendTaskToNode(t,n);
-					    found=true;
-				    }
-			    }// end of blank node(s) still available
-		    }
-		
-		}
-		
-		if(!found) // no blank node available or there is no suitable blank node available!!!
-			     	   // we are going to wait for a busy node to become idle!
-						// The last solution!
-		{
-			if(Cmatch) 
-				t->AssignedConfig=Cmatch->ConfigNo; // adjust the assigned config field again if needed, in case there was previously an exact match
-			
-			Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
-			
-			found=queryBusyListforPotentialCandidate(t,SL); // determine whether or not the current busy list has any potential candidate for 
-															// accommodating the task regarding the Area restriction
-			Total_Search_Length_Scheduler+=SL;
-																			
-			if( found )   // if yes
-			{
-				PutInSuspensionQueue(t);
+				cout<<"Trying Configuration for Closest configuration"<<endl;
+				n=findBestBlankNodeMatch(t,SL);
+				if (n)
+				{
+					cout<<"Doing Configuration for Closest configuration"<<endl;
+					SchduledTasks++;				
+					Total_Search_Length_Scheduler+=SL;
+					Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
+					sendBitstream(n,Closestmatch);
+					SendTaskToNode(t,n);
+					found=true;
+				}
 			}
-			// we can also go for another check with all busy nodes and do a reconfig later if needed, not considered in this scheduler!!!
-			else 
-				DiscardTask(t); // bad task, throw it away! 
-		} // end of waiting!
+			    
+			if(!found) // no suitable idle node found at this point
+			{
+				cout<<"Trying Partial configuration for closest configuration"<<endl;
+				n=findBestPartiallyBlankNodeMatch(t,SL);
+				if (n)   //partial configuration of a node
+				{
+					cout<<"Doing Partial configuration  for closest configuration"<<endl;
+					SchduledTasks++;			
+					Total_Search_Length_Scheduler+=SL;
+					Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
+					cout<<"\n Sending bit stream for closest configuration "<<Closestmatch->ConfigNo<<" to node "<<n->NodeNo<<endl;
+					sendBitstream(n,Closestmatch);
+					Total_Configuration_Time += PARTIAL_CONFIG_PENALTY;
+					SendTaskToNode(t,n);
+					found=true;					
+				}
+			}
+			
+			if(!found) // no blank node available or there is no suitable blank node available!!!
+			{			// try reconfiguring one of the idle nodes!
+				cout<<"Trying Partial re-configuration for closest configuration"<<endl;
+				unsigned long int EntryDetails[MAX_NODE_CONFIGS+1]; //which contains the details of the entries to be reconfigured
+				//first element will indicate the number of entries and rest
+				//of the elements in the array are the eactual entry numbers
+				
+				//this will look for partially idle node i.e. a node with a configuration but idle, so that we can reconfigure it
+				//and if it can find, then only that part will be reconfigured
+				n=findAnyIdleNode(t,SL,EntryDetails);  	
+				if (n) // An idle node is found for reconfiguration
+				{
+					cout<<"Doing Partial re-configuration for closest configuration"<<endl;
+					Total_Search_Length_Scheduler+=SL;
+					
+					for (int temp = 1; temp <= EntryDetails[0] ; temp++)
+					{
+						//RemoveNodeFromIdleList(n,&configs[t->AssignedConfig]);
+						RemoveNodeFromIdleList(n, n->Config_Task_List[ EntryDetails[temp] ].config);
+						
+						makeNodePartiallyBlank(n, EntryDetails[temp] ); //this will delete this Entry only
+						
+						SchduledTasks++;
+						Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
+					}
+					
+					sendBitstream(n, &configs[t->AssignedConfig] ); 	//sendbitstream in this context will do its usual job, configuration will be added at the end 
+					//as the partial reconfiguration thing has already been dealt with in the above lines
+					SendTaskToNode(t,n);
+					found=true;
+				}
+			}// end of doing reconfiguration for one of the idle nodes
+			
+			// no blank node available or there is no suitable blank node available!!!
+			// we are going to wait for a busy node to become idle!
+			// The last solution!			    
+			if(!found) 
+			{
+				Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
+				
+				found=queryBusyListforPotentialCandidate(t,SL); // determine whether or not the current busy list has any potential candidate for 
+				// accommodating the task regarding the Area restriction
+				Total_Search_Length_Scheduler+=SL;
+				
+				if( found )   // if yes, we can accomodate sometime in future
+				{
+					PutInSuspensionQueue(t);
+				}
+				// we can also go for another check with all busy nodes and do a reconfig later if needed, not considered in this scheduler!!!
+				else 
+				{
+					DiscardTask(t); // bad task, throw it away! 
+				}
+			} // end of waiting!
+		}
+		else //if even closestconfiguration is not found then we should discard this task
+		{
+			DiscardTask(t); // bad task, throw it away! 
+		}
 	}// end of no exact match or we had exact match but were not able to accommodate on exact config list
 	
 	cout<<"End of schedular "<<endl;
@@ -1417,6 +1525,8 @@ void VexSim::Start()
 	
 	cout<<"\n Going to MakeReport"<<endl;
 	MakeReport(); 	// end of the simulation, make the final report
+	
+
 }
 
 void VexSim::printOneBusyList(unsigned int confno)

@@ -19,7 +19,11 @@
 
 #define MAX_NODE_CONFIGS 10
 
-//this should be greater than total configurations
+//currently we have two policies for scheduling
+//which differ on the concept that we prefer blank node first
+//configuration or we prefer partially blank node
+#define PREFER_BLANK
+// #define PREFER_PARTIALY_BLANK
 
 #define PARTIAL_CONFIG_PENALTY 10
 
@@ -87,7 +91,7 @@ class VexSim
 {
 	public:
 			VexSim(unsigned int TN=100,unsigned int TC=10, unsigned long int TT=10000, 
-					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=500, unsigned int NhighA=5000,
+					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=7000, unsigned int NhighA=8000,
 					unsigned int TlowA=500, unsigned int ThighA=6000,
 					unsigned int TRTlow=100, unsigned int TRThigh=10000,
 					unsigned int ConfTmL=10 , unsigned int ConfTmH=30,
@@ -112,7 +116,7 @@ class VexSim
 			void RemoveNodeFromIdleList(Node *n, Config *conf);
 			Config* findPreferredConfig(Task *);
 			Config* findClosestConfig(Task *); // for now the simulator only picks a random number for the closest configuration match
-			Node* findAnyIdleNode(Task* ,unsigned long long int& , unsigned long int * EntryNo );
+			Node* findAnyIdleNode(Task* ,unsigned long long int& , unsigned long int EntryDetails[MAX_NODE_CONFIGS+1]);
 			Node* findBestBlankNodeMatch(Task* ,unsigned long long int& );
 			Node* findBestPartiallyBlankNodeMatch(Task* ,unsigned long long int& );
 			Node* findBestNodeMatch(Task* ,Node *,unsigned long long int&);
