@@ -8,27 +8,27 @@
 
 int main(int argc, char **argv)
 {
-	unsigned long int TT=1000,TN=10,TC=25;
-	VexSim VS(TN,TC,TT);
-	VS.Start();
+	unsigned long int TT=5,TN=1,TC=1;
+/*	VexSim VS(TN,TC,TT);
+	VS.Start();*/
 	
-/* 	unsigned long int Sim_Tasks [11] = {1000, 2000, 3000, 4000, 5000,10000,20000,30000,40000,50000,100000}; 
+	unsigned long int Sim_Tasks [10] = {1000, 2000, 3000, 4000, 5000,6000,7000,8000,9000,10000}; 
 	
-	switch (argc)
+	for (int i=0;i<5;i++)
 	{
-		case 4: TT=atoi(argv[3]);
-		case 3: TC=atoi(argv[2]);
-		case 2: TN=atoi(argv[1]);
-		default:
-		break;
-	}
-		
- 		for (int i=0;i<11;i++)
- 		{
- 		TT=Sim_Tasks[i];
+		TT=Sim_Tasks[i];
 		VexSim VS(TN,TC,TT);
 		VS.Start();
- 		}*/
+	}
 	
 	return 0;
 }
+
+// switch (argc)
+// {
+// 	case 4: TT=atoi(argv[3]);
+// 	case 3: TC=atoi(argv[2]);
+// 	case 2: TN=atoi(argv[1]);
+// 	default:
+// 		break;
+// }

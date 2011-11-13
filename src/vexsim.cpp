@@ -54,8 +54,8 @@ VexSim::VexSim(unsigned int TN,unsigned int TC, unsigned long int TT, unsigned i
 	InitNodes();
 	InitConfigs();
 	
-	dumpf.open("idlelists.txt");
-	if (dumpf.fail()) {cout<<"\n failed opening the dump file.\n"; exit(1); }
+// 	dumpf.open("idlelists.txt");
+// 	if (dumpf.fail()) {cout<<"\n failed opening the dump file.\n"; exit(1); }
 
 }
 
@@ -1177,7 +1177,7 @@ void VexSim::RunVexScheduler(Task *t)
 				Total_Search_Length_Scheduler+=SL;
 				Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
 				cout<<"Sending bit stream for configuration "<<Cmatch->ConfigNo<<" to node "<<n->NodeNo<<endl;
-				dumpf<<"Sending bit stream for configuration "<<Cmatch->ConfigNo<<" to node "<<n->NodeNo<<endl;
+				//dumpf<<"Sending bit stream for configuration "<<Cmatch->ConfigNo<<" to node "<<n->NodeNo<<endl;
 				sendBitstream(n,Cmatch);
 				SendTaskToNode(t,n);
 				
@@ -1409,9 +1409,9 @@ void VexSim::MakeReport()
 	sprintf (fileName, "%d", TotalTasks);
 	
 	if(MAX_NODE_CONFIGS == 1)
-		strcat(fileName, "_FullConfig.txt");
+		strcat(fileName, "_FullConfig.dsim");
 	else
-		strcat(fileName, "_PartialConfig.txt");		
+		strcat(fileName, "_PartialConfig.dsim");		
 	  	  
 	f.open(fileName);
 	if (f.fail()) 
@@ -1609,7 +1609,7 @@ void VexSim::Start()
 	cout<<"\n Going to MakeReport"<<endl;
 	MakeReport(); 	// end of the simulation, make the final report
 	
-	dumpf.close();	
+	//dumpf.close();	
 }
 
 void VexSim::printOneBusyList(unsigned int confno)
@@ -1709,18 +1709,19 @@ void VexSim::printNode(Node * n)
 	}
 }
 
+
 void VexSim::printNodeOnFile(Node * n)
 {
-	dumpf<<endl<<"Printing Details for NodeNo : "<<n->NodeNo<<endl;
-	dumpf<<"n->Config_Task_Entries : "<<n->Config_Task_Entries<<endl;
+	cout<<endl<<"Printing Details for NodeNo : "<<n->NodeNo<<endl;
+	cout<<"n->Config_Task_Entries : "<<n->Config_Task_Entries<<endl;
 	
-	dumpf<<"Entry \t ConfigNo \t TaskNo"<<endl;
+	cout<<"Entry \t ConfigNo \t TaskNo"<<endl;
 	for(int i=0;i<n->Config_Task_Entries;i++)
 	{
-		dumpf<<i<<" \t ";
-		(n->Config_Task_List[i].config == NULL)? dumpf<<"NULL": dumpf<< n->Config_Task_List[i].config->ConfigNo<<" \t\t ";
-		(n->Config_Task_List[i].task == NULL)? dumpf<<"NULL": dumpf<< n->Config_Task_List[i].task->TaskNo;
-		dumpf<<endl;
+		cout<<i<<" \t ";
+		(n->Config_Task_List[i].config == NULL)? cout<<"NULL": cout<< n->Config_Task_List[i].config->ConfigNo<<" \t\t ";
+		(n->Config_Task_List[i].task == NULL)? cout<<"NULL": cout<< n->Config_Task_List[i].task->TaskNo;
+		cout<<endl;
 	}
 }
 

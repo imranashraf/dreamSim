@@ -27,7 +27,7 @@ using namespace std;
 // #define PREFER_BLANK
 // #define PREFER_PARTIALY_BLANK
 
-#define PARTIAL_CONFIG_PENALTY 10
+#define PARTIAL_CONFIG_PENALTY 5
 
 struct Config;
 
@@ -93,9 +93,9 @@ class VexSim
 {
 	public:
 			VexSim(unsigned int TN=100,unsigned int TC=10, unsigned long int TT=10000, 
-					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=1000, unsigned int NhighA=5000,
-					unsigned int TlowA=500, unsigned int ThighA=6000,
-					unsigned int TRTlow=100, unsigned int TRThigh=10000,
+					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=2500, unsigned int NhighA=6000,
+					unsigned int TlowA=500, unsigned int ThighA=3000,
+					unsigned int TRTlow=5000, unsigned int TRThigh=10000,
 					unsigned int ConfTmL=10 , unsigned int ConfTmH=30,
 				    unsigned int NWDH=800 , unsigned int NWDL=200);
 					

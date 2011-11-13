@@ -1,0 +1,17 @@
+Short Term
+==========
+*	check the performance metric calculations e.g. wasted_area, to see if it is being updated as required
+*	do experimentation with various setups and see the trend
+
+*	introduce two simple policy as discussed earlier according to the order of allocation-configuration
+*	introduce the polices such as 
+		-	greedy policy : which will try to schedule as soon as possible
+		-	load balanced policy:	which will try to balance the load among nodes
+		-	
+		
+
+
+
+Long Term
+=========
+*	node, task, configs should be separte classes containing their functions etc in them

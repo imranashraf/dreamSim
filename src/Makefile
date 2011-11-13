@@ -20,4 +20,7 @@ clean:
 	@-rm -f *~ &> /dev/null 
 	@-echo "Cleaned Files successfully ..."
 	
-.PHONY: all clean	
+cleanres:
+	@-rm -f *.dsim
+	
+.PHONY: all clean cleanres
