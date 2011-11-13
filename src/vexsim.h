@@ -11,18 +11,20 @@
 
 #include "rng.h"
 
+using namespace std;
+
 #ifndef _VEX_SIM_
 #define _VEX_SIM_
 
 #define DEBUG_MODE 0
 #define TASK_TRACK_MODE 0
 
-#define MAX_NODE_CONFIGS 10
+#define MAX_NODE_CONFIGS 1
 
 //currently we have two policies for scheduling
 //which differ on the concept that we prefer blank node first
 //configuration or we prefer partially blank node
-#define PREFER_BLANK
+// #define PREFER_BLANK
 // #define PREFER_PARTIALY_BLANK
 
 #define PARTIAL_CONFIG_PENALTY 10
@@ -91,7 +93,7 @@ class VexSim
 {
 	public:
 			VexSim(unsigned int TN=100,unsigned int TC=10, unsigned long int TT=10000, 
-					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=7000, unsigned int NhighA=8000,
+					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=1000, unsigned int NhighA=5000,
 					unsigned int TlowA=500, unsigned int ThighA=6000,
 					unsigned int TRTlow=100, unsigned int TRThigh=10000,
 					unsigned int ConfTmL=10 , unsigned int ConfTmH=30,
@@ -130,7 +132,7 @@ class VexSim
 			
 			bool GiveEntryNo(Node *n, Task * t, unsigned int * EntryNo);
 			bool addTaskToNode(Node *node, Task *task);
-			bool RemoveTaskFromNode(Node *node, Task *task);
+			//bool RemoveTaskFromNode(Node *node, Task *task);
 			bool GiveEntryNo(Node * n, unsigned int confNo, unsigned int * EntryNo);
 			bool IsNodeIdle(Node * n);
 			bool IsNodeBlank(Node * n);
@@ -140,6 +142,8 @@ class VexSim
 			void printOneBusyList(unsigned int confno);
 			void printIdleLists();
 			void printOneIdleList(unsigned int confno);
+			void printNode(Node * n);
+			void printNodeOnFile(Node * n);
 			Task * GetAnyTaskFromSuspensionQueue();
 			void makeNodePartiallyBlank(Node *n, unsigned long int EntryNo);
 			bool NodeHasAnyRunningTasks(Node * n);
@@ -189,6 +193,8 @@ class VexSim
 			unsigned long long int Total_Configuration_Time;
 			
 			unsigned long long int TimeTick;
+			
+			ofstream dumpf;
 };
 
 #endif

@@ -17,7 +17,7 @@ valgrind: $(EXEC)
 
 clean:
 	@-rm -f $(EXEC) 
-	@-rm *~
+	@-rm -f *~ &> /dev/null 
 	@-echo "Cleaned Files successfully ..."
 	
 .PHONY: all clean	
