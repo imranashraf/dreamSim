@@ -7,7 +7,10 @@ Short Term
 *	introduce the polices such as 
 		-	greedy policy : which will try to schedule as soon as possible
 		-	load balanced policy:	which will try to balance the load among nodes
-		-	
+		-	findAnyIdle() option may be disabled.
+*	Try to add all the important parameters in the class interface or in the 'main'. For example:
+		- 	ClosestMatch (1.1) should be added as a parameter, instead of hardcoded value.
+		- 	Policy/Strategy switches.
 		
 
 
@@ -15,3 +18,22 @@ Short Term
 Long Term
 =========
 *	node, task, configs should be separte classes containing their functions etc in them
+*	At the moment, the tasks are independent, but task communication must be added. 
+		-	This will require new algorithms and change in datastructures.
+		-	Task pre-emption.
+*	The real workloads can be added by using:
+		-	Roel's Quipu tool and statistics
+		-	task communications by using QUAD
+*	The task, Configuration, node area distributions can be made more realistic.
+*	Network delay modelings. 
+		-	Impacts on decision making and scheduling.
+		-	Centrilized scheduling.
+*	Mathematical formulation.
+		-	Have to discuss in detail with Arash, Imran, Shah Muhammad, and his colleague.
+*	Performance of the simulator itself. Time it takes to run a certain number of tasks under certain parametric conditions.
+		-	Check how other simulators (SimGrid and GridSim) were validate.
+*	Check the impact of sorting of completion times of all tasks.
+*	Currently, findAnyIdleNode() checks for the first idle node with sufficient (but in-efficient) area. But it can also search for best node match.
+*	
+	
+
