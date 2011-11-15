@@ -95,7 +95,7 @@ class VexSim
 {
 	public:
 			VexSim(unsigned int TN=100,unsigned int TC=10, unsigned long int TT=10000, 
-					unsigned int NextTaskMaxInterval=250, unsigned int NlowA=3000, unsigned int NhighA=10000,
+					unsigned int NextTaskMaxInterval=100, unsigned int NlowA=3000, unsigned int NhighA=10000,
 					unsigned int ClowA=500, unsigned int ChighA=4500,
 					unsigned int TRTlow=5000, unsigned int TRThigh=10000,
 					unsigned int ConfTmL=10 , unsigned int ConfTmH=30,
