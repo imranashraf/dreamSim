@@ -1,23 +1,46 @@
 #! /bin/bash
 
+currDir=`pwd`
+srcDir=../src
+MaxNodeConfigs=10
+
+#####################################
+# echo "Entering source dir"
+# cd $srcDir
+# 
+# echo "Running DreamSim with Full Configuration (MAX_NODE_CONFIG = 1 ) ..."
+# make cleanall clean all "MNC=1"
+# make run
+# 
+# echo "Running DreamSim with Partial Configuration (MAX_NODE_CONFIG = $MaxNodeConfigs ) ..."
+# make clean all "MNC=$MaxNodeConfigs"
+# make run
+# 
+# echo "Making Plot ...."
+# echo "Entering script dir"
+# cd $currDir
+######################################
+
 tempfile=temp.txt
 FullData=full.txt
 PartialData=partial.txt
-
+interval=3
 xaxis=total_tasks_generated
 #change the entry below for the required metric
-yaxis=average_task_waiting_time   
+yaxis=average_reconfiguration_count_per_node
 
-# average_task_waiting_time
-# total_tasks_discarded
 # total_wasted_area
 # average_wasted_area_per_task
-# total_scheduling_steps
-# average_scheduling_steps_per_task
 # total_tasks_waiting_time
 # average_task_waiting_time
-# Total_reconfiguration_count
+# total_tasks_discarded
+# total_scheduling_steps
+# average_scheduling_steps_per_task
 # Total_Simulation_Workload
+# Total_reconfiguration_count
+# average_reconfiguration_count_per_node
+# total_configuration_time
+# average_configuration_time_per_task
 
 #remove old files
 rm -f *.dsim 
@@ -53,5 +76,14 @@ rm -f $tempfile
 	echo "set xlabel '$xaxis' "
 	echo "set ylabel '$yaxis' "
 	echo "plot '$FullData' using 1:2  with linespoints title 'Full' , '$PartialData' using 1:2  with linespoints title 'Partial' "
+
+# 	while true; do 
+#         echo pause $interval; 
+#         echo reread;
+#         echo replot; 
+#         sleep $interval; 
+#     done
+
 	) | gnuplot -persist
+
 

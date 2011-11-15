@@ -19,7 +19,11 @@ using namespace std;
 #define DEBUG_MODE 0
 #define TASK_TRACK_MODE 0
 
-#define MAX_NODE_CONFIGS 1
+#ifdef MNC
+	#define MAX_NODE_CONFIGS MNC
+#else
+	#define MAX_NODE_CONFIGS 5
+#endif
 
 //currently we have two policies for scheduling
 //which differ on the concept that we prefer blank node first
@@ -93,11 +97,12 @@ class VexSim
 {
 	public:
 			VexSim(unsigned int TN=100,unsigned int TC=10, unsigned long int TT=10000, 
-					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=2500, unsigned int NhighA=6000,
+					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=5000, unsigned int NhighA=15000,
 					unsigned int TlowA=500, unsigned int ThighA=3000,
 					unsigned int TRTlow=5000, unsigned int TRThigh=10000,
 					unsigned int ConfTmL=10 , unsigned int ConfTmH=30,
-				    unsigned int NWDH=800 , unsigned int NWDL=200);
+				    unsigned int NWDH=800 , unsigned int NWDL=200,
+				    double ClosestConfigPercent=1.15);
 					
 			void Start();
 
@@ -184,6 +189,7 @@ class VexSim
 			unsigned int TaskReqTimelow,TaskReqTimehigh;
 			unsigned int ConfigTimeLow,ConfigTimeHigh;
 			unsigned int NWDLow,NWDHigh;
+			double ClosestConfigPercent;
 			
 			unsigned long long int Total_Wasted_Area;
 			unsigned long long int Total_Search_Length_Scheduler; // It accounts only for the steps taken by the scheduler to accommodate tasks (to find the bestmatch, idlenodes, blanknodes) not looking at the suspension queue

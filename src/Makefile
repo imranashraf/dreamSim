@@ -4,7 +4,7 @@ CPPSOURCES=vexsim.cpp rng.cpp main.cpp
 HSOURCES=vexsim.h rng.h
 
 all: $(CPPSOURCES) $(HSOURCES)
-	@-$(CC) -g -o $(EXEC) main.cpp 
+	@-$(CC) -g -o $(EXEC) main.cpp -DMAX_NODE_CONFIGS=$(MNC)
 
 run: $(EXEC)
 	@-echo "Running Simulation ..."
@@ -20,7 +20,7 @@ clean:
 	@-rm -f *~ &> /dev/null 
 	@-echo "Cleaned Files successfully ..."
 	
-cleanres:
+cleanall:
 	@-rm -f *.dsim
 	
 .PHONY: all clean cleanres

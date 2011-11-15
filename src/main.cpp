@@ -8,13 +8,13 @@
 
 int main(int argc, char **argv)
 {
-	unsigned long int TT=5,TN=1,TC=1;
+	unsigned long int TT=5,TN=10,TC=25;
 /*	VexSim VS(TN,TC,TT);
 	VS.Start();*/
 	
-	unsigned long int Sim_Tasks [10] = {1000, 2000, 3000, 4000, 5000,6000,7000,8000,9000,10000}; 
+	unsigned long int Sim_Tasks [10] = {500, 1000, 1500, 2000, 2500,3000,3500,4000,4500,5000}; 
 	
-	for (int i=0;i<5;i++)
+	for (int i=0;i<10;i++)
 	{
 		TT=Sim_Tasks[i];
 		VexSim VS(TN,TC,TT);
