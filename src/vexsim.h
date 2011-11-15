@@ -19,17 +19,15 @@ using namespace std;
 #define DEBUG_MODE 0
 #define TASK_TRACK_MODE 0
 
-#ifdef MNC
+#ifndef MAX_NODE_CONFIGS
 	#define MAX_NODE_CONFIGS MNC
-#else
-	#define MAX_NODE_CONFIGS 5
 #endif
 
 //currently we have two policies for scheduling
 //which differ on the concept that we prefer blank node first
 //configuration or we prefer partially blank node
-// #define PREFER_BLANK
-// #define PREFER_PARTIALY_BLANK
+#define POLICY_ABCD
+// #define POLICY_ACBD
 
 #define PARTIAL_CONFIG_PENALTY 5
 
@@ -97,8 +95,8 @@ class VexSim
 {
 	public:
 			VexSim(unsigned int TN=100,unsigned int TC=10, unsigned long int TT=10000, 
-					unsigned int NextTaskMaxInterval=1000, unsigned int NlowA=5000, unsigned int NhighA=15000,
-					unsigned int TlowA=500, unsigned int ThighA=3000,
+					unsigned int NextTaskMaxInterval=250, unsigned int NlowA=3000, unsigned int NhighA=10000,
+					unsigned int ClowA=500, unsigned int ChighA=4500,
 					unsigned int TRTlow=5000, unsigned int TRThigh=10000,
 					unsigned int ConfTmL=10 , unsigned int ConfTmH=30,
 				    unsigned int NWDH=800 , unsigned int NWDL=200,
@@ -185,7 +183,7 @@ class VexSim
 			// needed for random number generation
 			unsigned int NextTaskMaxInterval;
 			unsigned int NodelowA,NodehighA;
-			unsigned int TasklowA,TaskhighA;
+			unsigned int ConfiglowA,ConfighighA;
 			unsigned int TaskReqTimelow,TaskReqTimehigh;
 			unsigned int ConfigTimeLow,ConfigTimeHigh;
 			unsigned int NWDLow,NWDHigh;

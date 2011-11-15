@@ -7,7 +7,7 @@
 
 VexSim::VexSim(unsigned int TN,unsigned int TC, unsigned long int TT, unsigned int NextTaskMaxInterval,
 			   unsigned int NlowA, unsigned int NhighA,
-			   unsigned int TlowA, unsigned int ThighA,
+			   unsigned int ClowA, unsigned int ChighA,
 		       unsigned int TRTlow, unsigned int TRThigh,
 			   unsigned int ConfTmL , unsigned int ConfTmH,
 			   unsigned int NWDH, unsigned int NWDL,
@@ -20,8 +20,8 @@ VexSim::VexSim(unsigned int TN,unsigned int TC, unsigned long int TT, unsigned i
 	NodelowA=NlowA;
 	NodehighA=NhighA;
 
-	TasklowA=TlowA;
-	TaskhighA=ThighA;
+	ConfiglowA=ClowA;
+	ConfighighA=ChighA;
 	
 	TaskReqTimelow=TRTlow;
 	TaskReqTimehigh=TRThigh;
@@ -130,10 +130,10 @@ void VexSim::InitConfigs()
 	{
 		configs[i].ConfigNo=i;  // ConfigNo are beginning from 0
 		
-		configs[i].RequiredArea = (x.rand_int31()%(TaskhighA-TasklowA+1))+TasklowA;
+		configs[i].RequiredArea = (x.rand_int31()%(ConfighighA-ConfiglowA+1))+ConfiglowA;
 		
 		//Cofiguration time is a function of area required for certain configuration
-		configs[i].ConfigTime = (configs[i].RequiredArea) / TasklowA + 5; //where 5 is some overhead which will alsways be there
+		configs[i].ConfigTime = (configs[i].RequiredArea) / ConfiglowA + 5; //where 5 is some overhead which will alsways be there
 		
 		configs[i].idle=NULL;
 		configs[i].busy=NULL;
@@ -535,7 +535,6 @@ Task * VexSim::CreateTask()
 	if (!t) { cerr<<"\nError in memory allocation for Task # " << TotalCurGenTasks <<"\n"; exit(1);}
 	
 	t->TaskNo=TotalCurGenTasks;
- 	//t->NeededArea=(x.rand_int31()%(TaskhighA-TasklowA+1))+TasklowA;
 	
 	// we will assume about 10% of the created tasks preferring a configuration which is not available in the system
 	// the criterion can be changed later
@@ -1158,6 +1157,12 @@ void VexSim::RunVexScheduler(Task *t)
 	bool found=false;
 	unsigned long long int SL=0;
 	Node *n;
+	
+	#ifndef POLICY_ABCD
+		#ifndef POLICY_ACBD
+		#error "Define at least one policy out of ABCD or ACBD"
+		#endif
+	#endif
 
 	cout<<"\n\n Entering RunVexScheduler "<<endl;
 	
@@ -1185,6 +1190,7 @@ void VexSim::RunVexScheduler(Task *t)
 			}
 		}
 		
+		#if defined POLICY_ABCD 
 		if(!found) // no suitable idle node found at this point
 		{
 			cout<<"Trying configuration of blank"<<endl;
@@ -1225,7 +1231,48 @@ void VexSim::RunVexScheduler(Task *t)
 				found=true;					
 			}
 		}
+	
+		#elif defined POLICY_ACBD
+		if(!found) // no suitable idle node found at this point
+		{
+			cout<<"Trying Partial configuration"<<endl;
+			n=findBestPartiallyBlankNodeMatch(t,SL);
+			
+			if (n)   //partial configuration of a node
+			{
+				cout<<"Doing Partial configuration"<<endl;
+				SchduledTasks++;			
+				Total_Search_Length_Scheduler+=SL;
+				Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
+				cout<<"\n Sending bit stream for configuration "<<Cmatch->ConfigNo<<" to node "<<n->NodeNo<<endl;
+				sendBitstream(n,Cmatch);
+				Total_Configuration_Time += PARTIAL_CONFIG_PENALTY;
+				SendTaskToNode(t,n);
+				
+				found=true;					
+			}
+		}
 		
+		if(!found) // no suitable idle node found at this point
+		{
+			cout<<"Trying configuration of blank"<<endl;
+			n=findBestBlankNodeMatch(t,SL);
+			if (n)  //configuration of blank node
+			{
+				cout<<"Doing configuration of blank"<<endl;
+				SchduledTasks++;			
+				Total_Search_Length_Scheduler+=SL;
+				Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
+				cout<<"Sending bit stream for configuration "<<Cmatch->ConfigNo<<" to node "<<n->NodeNo<<endl;
+				
+				sendBitstream(n,Cmatch);
+				SendTaskToNode(t,n);
+				
+				found=true;					
+			}
+		}
+		#endif
+
 		
 		if(!found) // no blank node available or there is no suitable blank node available!!!
 		{			// try reconfiguring one of the idle nodes!
@@ -1335,6 +1382,7 @@ void VexSim::RunVexScheduler(Task *t)
 
 		    }
 		
+			#ifdef POLICY_ABCD
 		    if(!found) // no (suitable) idle nodes available
 		    {
 				cout<<"Trying Configuration for Closest configuration"<<endl;
@@ -1371,6 +1419,45 @@ void VexSim::RunVexScheduler(Task *t)
 					found=true;					
 				}
 			}
+			
+			#elif defined POLICY_ACBD
+			if(!found) // no suitable idle node found at this point
+			{
+				cout<<"Trying Partial configuration for closest configuration"<<endl;
+				n=findBestPartiallyBlankNodeMatch(t,SL);
+				
+				if (n)   //partial configuration of a node
+				{
+					cout<<"Doing Partial configuration  for closest configuration"<<endl;
+					SchduledTasks++;			
+					Total_Search_Length_Scheduler+=SL;
+					Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
+					cout<<"\n Sending bit stream for closest configuration "<<Closestmatch->ConfigNo<<" to node "<<n->NodeNo<<endl;
+					sendBitstream(n,Closestmatch);
+					Total_Configuration_Time += PARTIAL_CONFIG_PENALTY;
+					SendTaskToNode(t,n);
+					
+					found=true;					
+				}
+			}
+			
+			if(!found) // no (suitable) idle nodes available
+			{
+				cout<<"Trying Configuration for Closest configuration"<<endl;
+				n=findBestBlankNodeMatch(t,SL);
+				if (n)
+				{
+					cout<<"Doing Configuration for Closest configuration"<<endl;
+					SchduledTasks++;				
+					Total_Search_Length_Scheduler+=SL;
+					Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
+					sendBitstream(n,Closestmatch);
+					SendTaskToNode(t,n);
+					
+					found=true;
+				}
+			}
+			#endif
 			
 			if(!found) // no blank node available or there is no suitable blank node available!!!
 			{			// try reconfiguring one of the idle nodes!
@@ -1460,11 +1547,6 @@ void VexSim::MakeReport()
 	f<<"total_PEs\t"<<TotalNodes<<endl;
 	f<<"total_configurations\t"<<TotalConfigs<<endl;
 	f<<"total_simulation_time\t"<<TimeTick<<endl;
-	
-/*	f<<"task_generation_interval_Min\t[ 1 ... "<<NextTaskMaxInterval<<" ]"<<endl;
-	f<<"PE_available_area_range\t[ "<<NodelowA<<" ... "<<NodehighA<<" ]"<<endl;
-	f<<"task_required_area_range\t[ "<<TasklowA<<" ... "<<TaskhighA<<" ]"<<endl;
-	f<<"task_required_timeslice_range\t[ "<<TaskReqTimelow<<" ... "<<TaskReqTimehigh<<" ]"<<endl;*/
 	
 	f<<"total_tasks_completed\t"<<TotalCompletedTasks<<endl;
 	f<<"total_tasks_discarded\t"<<TotalDiscardedTasks<<endl;
