@@ -26,10 +26,10 @@ using namespace std;
 //currently we have two policies for scheduling
 //which differ on the concept that we prefer blank node first
 //configuration or we prefer partially blank node
-#define POLICY_ABCD
-// #define POLICY_ACBD
+//#define POLICY_ABCD
+#define POLICY_ACBD
 
-#define PARTIAL_CONFIG_PENALTY 5
+#define PARTIAL_CONFIG_PENALTY 2
 
 struct Config;
 
@@ -95,9 +95,10 @@ class VexSim
 {
 	public:
 			VexSim(unsigned int TN=100,unsigned int TC=10, unsigned long int TT=10000, 
-					unsigned int NextTaskMaxInterval=100, unsigned int NlowA=3000, unsigned int NhighA=10000,
-					unsigned int ClowA=500, unsigned int ChighA=4500,
-					unsigned int TRTlow=5000, unsigned int TRThigh=10000,
+					unsigned int NextTaskMaxInterval=50, 
+				    unsigned int NlowA=1000, unsigned int NhighA=4000,
+					unsigned int ClowA=500, unsigned int ChighA=3000,
+					unsigned int TRTlow=500, unsigned int TRThigh=3000,
 					unsigned int ConfTmL=10 , unsigned int ConfTmH=30,
 				    unsigned int NWDH=800 , unsigned int NWDL=200,
 				    double ClosestConfigPercent=1.15);

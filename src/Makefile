@@ -3,6 +3,8 @@ EXEC:=dreamsim
 CPPSOURCES=vexsim.cpp rng.cpp main.cpp
 HSOURCES=vexsim.h rng.h
 
+MNC?=10
+
 all: $(CPPSOURCES) $(HSOURCES)
 	@-$(CC) -g -o $(EXEC) main.cpp -DMAX_NODE_CONFIGS=$(MNC)
 

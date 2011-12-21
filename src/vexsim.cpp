@@ -678,22 +678,48 @@ Config* VexSim::findPreferredConfig(Task *t)
 
 Config* VexSim::findClosestConfig(Task *t)
 {
-    unsigned int cno;
+    unsigned long int cno,closConfArea=0,prefConfArea=0;
+	long int mindiff=-1;
+	Config * closConfig=NULL;
+
+	closConfArea=configs[0].RequiredArea;
+	prefConfArea=configs[t->PrefConfig].RequiredArea;
+	mindiff = closConfArea - prefConfArea;
+	
+	for(cno=1; cno < TotalConfigs; cno++)
+	{
+		Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.						
+		closConfArea=configs[cno].RequiredArea;
+		long int tempDiff = closConfArea - prefConfArea;
+		if ( tempDiff > 0 && tempDiff < mindiff )
+		{
+			mindiff = tempDiff;
+			closConfig = &configs[cno];
+		}
+	}
+	return closConfig;
+}
+
+/*
+Config* VexSim::findClosestConfig(Task *t)
+{
+	unsigned int cno;
 	Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
 	cno = x.rand_int31() % (unsigned int) TotalConfigs;
-
+	
 	return &configs[ cno ];
-
-// 	for(cno=0; cno < TotalConfigs; cno++)
-// 	{
-// 		Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.		
-// 		if ( (configs[cno].RequiredArea <= configs[t->PrefConfig].RequiredArea)  && (cno != t->PrefConfig) )
-// 			return &configs[cno];
-// 	}
-// 	return NULL;
-// 	
-
+	
+	// 	for(cno=0; cno < TotalConfigs; cno++)
+	// 	{
+		// 		Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.		
+		// 		if ( (configs[cno].RequiredArea <= configs[t->PrefConfig].RequiredArea)  && (cno != t->PrefConfig) )
+		// 			return &configs[cno];
+		// 	}
+		// 	return NULL;
+		// 	
+		
 }
+*/
 
 Node* VexSim::findAnyIdleNode(Task* t,unsigned long long int& SL, unsigned long int EntryDetails[MAX_NODE_CONFIGS+1] )
 {
@@ -885,7 +911,7 @@ Node* VexSim::findBestNodeMatch(Task* t,Node *idlelist,unsigned long long int& S
 		SL++;
 		Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
 		
-		nodearea = idlelist->TotalArea;
+		nodearea = idlelist->AvailableArea;
 		taskarea = configs[t->AssignedConfig].RequiredArea;
  		if (nodearea >= taskarea && (idlelist->Config_Task_Entries < MAX_NODE_CONFIGS) ) 
  		{
@@ -904,7 +930,7 @@ Node* VexSim::findBestNodeMatch(Task* t,Node *idlelist,unsigned long long int& S
 		SL++;
 		Total_Simulation_Workload++; //Simulation workload is associated with total scheduler workload required during one simulation run.
 		
-		nodearea = idlelist->TotalArea;
+		nodearea = idlelist->AvailableArea;
 		taskarea = configs[t->AssignedConfig].RequiredArea;
 		temp=nodearea - taskarea;
 		
@@ -1529,7 +1555,7 @@ void VexSim::RunVexScheduler(Task *t)
 void VexSim::MakeReport()
 {
 	ofstream f;
-	sprintf (fileName, "%d", TotalTasks);
+	sprintf (fileName, "%d", TotalNodes);
 	
 	if(MAX_NODE_CONFIGS == 1)
 		strcat(fileName, "_FullConfig.dsim");
