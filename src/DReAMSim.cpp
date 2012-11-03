@@ -3,7 +3,7 @@
 // Arash Ostadzadeh (ostadzadeh@gmail.com)
 // Imran Ashraf	(imran.ashraf@ymail.com) 
 
-#include "vexsim.h"
+#include "DReAMSim.h"
 
 VexSim::VexSim(unsigned int TN,unsigned int TC, unsigned long int TT, unsigned int NextTaskMaxInterval,
 			   unsigned int NlowA, unsigned int NhighA,

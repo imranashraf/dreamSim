@@ -4,7 +4,7 @@
 // Imran Ashraf	(imran.ashraf@ymail.com) 
 
 #include "rng.cpp"
-#include "vexsim.cpp"
+#include "DReAMSim.cpp"
 
 int main(int argc, char **argv)
 {
