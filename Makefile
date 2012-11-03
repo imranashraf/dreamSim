@@ -24,6 +24,9 @@ clean:
 	
 delete:
 	@-rm -f *.dsim
+
+deleteall: clean delete
+	@-rm -f alldsimfiles.tar.gz allepsgraphs.tar.gz allpdfgraphs.tar.gz partial.txt full.txt
 	
 .PHONY: all clean delete
 

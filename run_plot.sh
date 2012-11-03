@@ -6,7 +6,7 @@ MaxNodeConfigs=10
 MAKEandPLOT=$1
 
 #assign yes to the following to send the result by email
-SendEmail=yes
+SendEmail=no
 
 tempfile=temp.txt
 FullData=full.txt
@@ -57,7 +57,7 @@ case "$1" in
 esac
 }
 	
-if [ "$MAKEandPLOT" == "all" ] 
+if [ "$MAKEandPLOT" != "no" ] 
 then
 	#echo "Entering source dir"
 	#	cd $srcDir
@@ -145,7 +145,7 @@ tar -czf alldsimfiles.tar.gz *.dsim
 rm -f *.eps
 
 # comment it if you dont want to delete pdf files
-rm -f *.pdf
+#rm -f *.pdf
 
 # Following is responsible to send the result files, eps and pdf by email
 if [ "$SendEmail" == "yes" ] 
